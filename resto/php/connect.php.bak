@@ -1,0 +1,11 @@
+<?php
+define('SERVERNAME', 'localhost');
+define('USERNAME','root');
+define('PASSWORD','');
+define('DATABASE','pos');
+$con=mysqli_connect(SERVERNAME,USERNAME,PASSWORD,DATABASE);
+if(!$con){
+	die('ERROR : ' . mysqli_connect_error($con));
+}
+global $enval = "casey_potpot";
+?>

@@ -1,0 +1,253 @@
+<?php
+include('connect.php');
+
+function geten()
+{
+	global $con;
+	$row = mysqli_fetch_assoc(mysqli_query($con, "Select * from encryptval"));
+	return $row['en'];	
+}
+function encrypt($data,$pass)
+{
+    $salt = substr(md5(mt_rand(), true), 8);
+    $key = md5($pass . $salt, true);
+    $iv  = md5($key . $pass . $salt, true);
+    $ct = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $data, MCRYPT_MODE_CBC, $iv);
+    return base64_encode('Salted__' . $salt . $ct);
+}
+function decrypt($data,$pass)
+{
+    $data = base64_decode($data);
+    $salt = substr($data, 8, 8);
+    $ct   = substr($data, 16);
+    $key = md5($pass . $salt, true);
+    $iv  = md5($key . $pass . $salt, true);
+    $pt = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $key, $ct, MCRYPT_MODE_CBC, $iv);
+    return $pt;
+}
+function mainmenu()
+{
+	global $con;
+	$query = mysqli_query($con, "Select * from menu_modulestb where isdeleted = 0");
+	?>
+		<ul class="sidebar-menu" data-widget="tree">
+       
+	   <?php
+	    $ctr = 1;
+	   while($row = mysqli_fetch_assoc($query))
+	   {
+	   ?>
+        <li class="treeview">
+          <a href="#">
+            <?php echo $row['icon'];?> <span><?php echo $row['module'];?></span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+          </a>
+		  <?php
+		  $squery = mysqli_query($con, "Select * from menu_submoduletb where module_id = $row[module_id] and isdeleted = 0");
+		  ?>
+          <ul class="treeview-menu">
+		  <?php
+		 
+		  while($srow = mysqli_fetch_assoc($squery))
+		  {
+			  $d = encrypt($srow['sub_id'],geten());
+		  ?>
+            <li><a href="#" id = "sss<?php echo $ctr;?>"><i class="fa fa-arrow-circle-right"></i> <?php echo $srow['name'];?></a></li>
+			<script>
+				$("#sss<?php echo $ctr;?>").click(
+					function(e)
+					{
+						e.preventDefault();
+						
+						
+					}
+				);
+			</script>
+		  <?php
+			$ctr++;
+		  }
+		  ?>
+		  </ul>
+        </li>
+	<?php
+		
+	   }
+	   ?>
+      </ul>
+<?php
+}
+function modheader($module)
+{
+	if(!empty($module)){
+
+		$row = mysql_fetch_assoc(mysql_query("Select * from menu_modulestb where module_id = $module"));
+		if(!empty($row))
+		{
+			$des = $row['icon']." ".$row['module'];
+			echo $des;
+		}
+		else
+		{
+			?>
+			<script>
+				window.location.href = "../home.php";
+			</script>
+			<?php
+		}
+	}
+	else
+	{
+		?>
+			<script>
+				window.location.href = "../home.php";
+			</script>
+		<?php
+	}
+}
+function sidemenu($module)
+{
+	$btn = array('btn btn-primary btn-sm','btn btn-secondary btn-sm','btn btn-success btn-sm','btn btn-info btn-sm','btn btn-warning btn-sm','btn btn-danger btn-sm');
+	
+	$isall = mysql_num_rows(mysql_query("Select * from menu_assignmenttb where (module_id = $module or module_id = 'all') and items = 'all' and employee_no = '$_SESSION[employee]' and deleted = 0"));
+	
+	if($isall != 0)
+	{
+		$query = mysql_query("Select * from menu_submoduletb where module_id = $module");
+	}
+	else
+	{
+		$query = mysql_query("Select DISTINCT(menu_submoduletb.sub_id) as sub_id from menu_submoduletb,menu_assignmenttb where menu_assignmenttb.module_id = $module
+		and menu_assignmenttb.items = menu_submoduletb.sub_id and menu_assignmenttb.deleted = 0 and menu_submoduletb.isdeleted = 0");
+	}
+	
+	$bctr = 0;
+	while($row = mysql_fetch_assoc($query))
+	{
+		$sname = mysql_fetch_assoc(mysql_query("Select name from menu_submoduletb where sub_id = $row[sub_id]"));
+		
+		$isall = mysql_num_rows(mysql_query("Select * from menu_assignmenttb where (module_id = $module or module_id = 'all') and (items = 'all' or $row[sub_id]) and menu_item = 'all' and employee_no = '$_SESSION[employee]' and deleted = 0"));
+		
+		if($isall != 0)
+		{
+			$iquery = mysql_query("Select * from menu_itemtb where submodule = $row[sub_id]");
+		}
+		else
+		{
+			$iquery = mysql_query("Select menu_itemtb.* from menu_itemtb,menu_assignmenttb where menu_assignmenttb.items = $row[sub_id]
+			and menu_assignmenttb.menu_item = menu_itemtb.menu_item_id and menu_assignmenttb.deleted = 0 and menu_itemtb.isdeleted = 0");
+		}			
+	?>
+	<div class="btn-group" style = "margin-top:-25px;">
+			<button type="button" class="<?php echo $btn[$bctr];?> dropdown-toggle" data-toggle="dropdown">
+			  <?php echo $sname['name'];?>
+			</button>
+			<div class="dropdown-menu">
+				  <?php
+					while($irow = mysql_fetch_assoc($iquery))
+					{
+					?>		
+						<a class="dropdown-item" href="<?php echo $irow['file'];?>?module=<?php echo $module;?>"><?php echo $irow['menu_item_name'];?></a>
+					<?php
+					}
+					?>
+			</div>
+	</div>	
+	<?php
+			if($bctr == 5)
+				$bctr = 0;
+		$bctr++;
+	}
+	
+}
+function company($ispages)
+{
+	if($ispages == 1)
+		$pages = '../';
+	else
+		$pages = '';
+	
+	?>
+	<script>
+		 document.title = "Channel Version 1.0.0";
+	</script>
+	<?php
+	$row = mysql_fetch_assoc(mysql_query("Select * from companytb"));
+	
+	$des = "<img src = '".$pages."images/".$row['logo']."' style = 'float:left;width:60px;'>  <div style = 'float:left;margin:10px 0px 0px 10px;text-transform:uppercase;font-weight:bold;color:#fff;'>".$row['company']."</div>";
+	
+	return $des;
+}
+
+function indexcheck()
+{
+	if(!empty($_SESSION['employee']))
+	{
+		echo "
+			<script>
+				window.location.href = 'home.php';
+			</script>
+		";
+	}
+}
+
+function resetcheck()
+{
+	if(empty($_SESSION['reset']))
+	{
+		echo "
+			<script>
+				window.location.href = 'index.php';
+			</script>
+		";
+	}
+}
+
+function homeresetcheck()
+{
+	if(!empty($_SESSION['reset']))
+	{
+		echo "
+			<script>
+				window.location.href = 'reset.php';
+			</script>
+		";
+	}
+}
+
+function pagehomecheck()
+{
+	if(empty($_SESSION['employee']))
+	{
+		echo "
+			<script>
+				window.location.href = '../index.php';
+			</script>
+		";
+	}
+}
+
+function homecheck()
+{
+	if(empty($_SESSION['employee']))
+	{
+		echo "
+			<script>
+				window.location.href = 'index.php';
+			</script>
+		";
+	}
+}
+
+function user()
+{
+	$user = $_SESSION['employee'];
+	
+	$row = mysql_fetch_assoc(mysql_query("Select * from usertb where employee_no = '$user'"));
+	
+	$fullname = $row['lname'].", ".$row['fname']." ".$row['mname'];
+	
+	return $fullname;
+}
+?>

@@ -1,0 +1,8 @@
+ALTER TABLE `order_transaction` CHANGE `remittance_center_id` `remittance_center_id` INT(5) NULL DEFAULT '0', CHANGE `bank_id` `bank_id` INT(5) NULL DEFAULT '0', CHANGE `courier_id` `courier_id` INT(5) NULL DEFAULT '0';
+
+--10:30 am 10-29-2019 ---
+ALTER TABLE `order_transaction` CHANGE `status_collection` `status_collection` VARCHAR(50) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT '0';
+ALTER TABLE `order_transaction` ADD `reference_referral` VARCHAR(255) NOT NULL AFTER `reference_no_courier`;
+
+10-30-2019
+ALTER TABLE `customer_profile` ADD `reference_no` VARCHAR(50) NOT NULL AFTER `customer_type`;
