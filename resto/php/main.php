@@ -11567,11 +11567,11 @@ if(isset($_POST['ifproduct']))
 if(isset($_REQUEST['addonui']))
 {
 	$id = $_REQUEST['addonui'];
-	$row = mysqli_fetch_assoc(mysqli_query($con,"Select item_description from pos_lup_item where item_id = $id"));
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_classification where classification_id = $id"));
 	?>
 		<section class="content-header">
 			<h1>
-				<?php echo $row['item_description'];?> Add-Ons
+				<?php echo $row['classification_description'];?> Add-Ons
 			</h1>
 			
 		</section>
@@ -11643,7 +11643,7 @@ if(isset($_REQUEST['addonui']))
 		</div>
 		<div class="box" style = "margin-top:10px;">
 			  <div class = "box-body" id = "addonlistui">
-				<?php add_ons($id, 1,0);?>
+				<?php add_ons($id,1,0);?>
 			  </div>
 		</div>
 			 </section>

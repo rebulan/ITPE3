@@ -392,7 +392,7 @@ if(!empty($_POST['posaddqtyui']))
 			</div>
 		</div>
 		<?php
-			$item_query = mysqli_query($con,"Select * from pos_lup_item where addon_id = $posaddqtyui and isdeleted = 0");
+			$item_query = mysqli_query($con,"Select * from pos_lup_item where addon_id = $i[classification_id] and isdeleted = 0");
 			$item_count = mysqli_num_rows($item_query);
 		if($item_count > 0)
 		{
@@ -5616,7 +5616,7 @@ if(isset($_REQUEST['posui']))
 		<?php
 	}
 }
-if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']) || isset($_REQUEST['takeorderui']))
+if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 {
 	if(isset($_REQUEST['posui2']))
 		$id = $_REQUEST['posui2'];
@@ -6368,20 +6368,366 @@ if(isset($_REQUEST['orderui']))
 }
 if(isset($_REQUEST['torderui']))
 {
-	$level = $_REQUEST['torderui'];
-	$user = get_user_id($_SESSION['c_craft']);
-	$agent = get_agent($user);
+	if(isset($_REQUEST['posui2']))
+		$id = $_REQUEST['posui2'];
+	
+	if(isset($_SESSION['prevtran']))
+		$_SESSION['tran'] = $_SESSION['prevtran'];
+	
+	if(isset($_REQUEST['takeorderui']))
+	{
+		$user = $_REQUEST['takeorderui'];
+		$trow = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where sales_invoice_number = '' and created_by_fullname = $user and isdeleted = 0"));
+		if(!empty($trow))
+		{
+			$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales, se_user where pos_sales.pos_sales_id = $_SESSION[tran]
+			and pos_sales.created_by_fullname = se_user.user_id and se_user.istable = 0"));
+			if($check > 0)
+			{
+				$_SESSION['prevtran'] = $_SESSION['tran'];
+			}
+			else
+			{
+				$_SESSION['prevtran'] = "";
+			}
+		
+			$_SESSION['tran'] = $trow['pos_sales_id'];
+		}
+		else
+		{
+			$_SESSION['tran'] = '';
+		}
+	}
+	else
+	{
+		$user = get_user_id($_SESSION['c_craft']);
+	}
+	
+	$cid = 0;
+	$cfullname = 'cus';
+	if(!empty($_REQUEST['pos_orderui']))
+	{
+		$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales, se_user where pos_sales.pos_sales_id = $_SESSION[tran]
+		and pos_sales.created_by_fullname = se_user.user_id and se_user.istable = 0"));
+			if($check > 0)
+			{
+				$_SESSION['prevtran'] = $_SESSION['tran'];
+			}
+			else
+			{
+				$_SESSION['prevtran'] = "";
+			}
+			
+		$_SESSION['tran'] = $_REQUEST['pos_orderui']; 
+	}
+	if(!empty($_REQUEST['posorderui']))
+	{
+		$cfullname = get_customer_fullname($id);
+		$cid = $id;
+	}
+	
+	$trn = 0;
+	if(!empty($_SESSION['tran']))
+	{
+		$trn = $_SESSION['tran'];
+	}
 	$branch = get_branch($user);
+	$agent = get_agent($user);
+	
 	?>
-	<h2>TAKE ORDERS</H2>
-	<div class="box">
-		<div id = "markalert"></div>
-		<div class="box">
-			<div class="box-body" id = "smonitorui">
-				<?php order_tables($branch,0);?>	
-			</div>
+		<script>
+			$.post( 
+																'php/pos.php',
+																{
+																	renderuii:1
+																	
+																},
+																function(data) {
+																	$('#renderui').html(data);
+																
+																});
+												$.post( 
+																'php/pos.php',
+																{
+																	changeuii:1
+																	
+																},
+																function(data) {
+																	$('#changeui').html(data);
+																
+																});
+		</script>
+	<?php
+	if(empty($_SESSION['tran']))
+	{
+		$validCharacters = "ABCDEFGHIJKLMNOPQRSTUXYVWZabcdefghijklmnopqrstuvwxyz0123456789";
+			$validCharNumber = strlen($validCharacters);
+			 
+			$length = 10;
+			$result = "";
+		
+				for ($i = 0; $i < $length; $i++) {
+					$index = mt_rand(0, $validCharNumber-1);
+					$result .= $validCharacters[$index];
+				}
+				
+		mysqli_query($con,"insert into pos_sales set
+		branch_id = '$branch',
+		sales_invoice_number = '',
+		customer_id = $cid,
+		customer_fullname = '$cfullname',
+		result = '$result',
+		created_by_fullname = '$user',
+		remarks = '',
+		isdeleted = 0
+		");
+		
+		$_SESSION['tran'] = '';
+		$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where result = '$result'"));
+		$_SESSION['prev'] = $sales_id['pos_sales_id'];
+		$_SESSION['tran'] = $sales_id['pos_sales_id'];
+	}
+	if($cid == 0)
+	{
+		mysqli_query($con,"Update pos_sales set customer_id = 0, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[tran]");
+	}
+	else{
+		mysqli_query($con,"Update pos_sales set customer_id = $cid, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[tran]");
+	}
+	
+	$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[tran]"));
+	
+	if(!isset($_SESSION['prev']))
+		$_SESSION['prev'] = 0;
+	
+	$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[prev]
+	and sales_invoice_number = ''"));
+	
+	if($pcheck != 0)
+	{
+		mysqli_query($con,"Update lup_invoice_number set pos_sales_id = 0 where pos_sales_id = $_SESSION[prev]");
+	}
+	
+	$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and branch_id = $branch
+	and pos_sales_id =0"));
+	
+	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[tran] where invoice_number_id = $irow[invoice_number_id]");
+	
+	$totalq = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
+	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
+	
+	$total = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(grand_total) as total from pos_sales_detail where 
+	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
+	?>	
+	<div class="callout callout-warning" style = "margin-top:-10px;">
+        <div class = "row">
+											<div class="col-md-3">
+													<div class="form-group">
+														
+														<input type = "date" class = "form-control" name = "pos_date" data-validation="required"
+														data-validation-error-msg="Enter Date" value = "<?php echo date('Y-m-d');?>" readonly>
+															
+													
+													</div>
+											</div>
+											
+											<div class="col-md-3" style = "display:none;">
+													<div class="form-group">
+														<label>Order Type:</label>
+													
+														<input type = "hidden" class = "form-control" name = "pos_otype" value = "1">
+													
+													</div>
+											</div>
+											<div class="col-md-3">
+													<div class="form-group">
+														<button class = "btn btn-success btn-flat btn-sm" id = "final">FINALIZE</button>
+														<button class = "btn btn-primary btn-flat btn-sm" id = "fin">BROWSE</button>	
+														<button class = "btn btn-danger btn-flat btn-sm" id = "cancel">RESET</button>
+													</div>
+											</div>
+											<div class="col-md-3" id = "ototalqntyui" STYLE = "font-weight:bold;font-size:15px;">
+												TOTAL QUANTITY: <?php echo number_format($totalq['total'],2);?>
+											</div>
+											<div class="col-md-3" id = "ototalui" STYLE = "font-weight:bold;font-size:15px;">
+												TOTAL SALES: <?php echo number_format($total['total'],2);?>
+											</div>
 		</div>
+    </div>
+		<script>
+				$("#barcode").focus();
+				$("#fin").click(
+							function()
+							{
+												$('#positemlist').html(loading);
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 poscategoryui:1,
+																	 
+																},
+																 function(data) {
+																	$('#positemlist').html(data);
+																	$("#itemtitle").html('BROWSE ITEMS');
+																 });
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 
+																	 itemtoggleui:1
+																},
+																 function(data) {
+																	$('#item-toggle').html(data);
+																	
+																 });
+																 
+							}
+						);
+						
+			$("#cancel").click(
+				function()
+				{
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 cleartran:1
+																},
+																 function(data) {
+																	$('#click').html(data);
+																
+																 });
+																 
+					$('#maincontent').html(loading);
+					
+					<?php
+						if($cid == 0)
+						{
+							?>
+								$.post( 
+																 'php/pos.php',
+																 {
+																	 posui:1
+																},
+																 function(data) {
+																	$('#maincontent').html(data);
+																	
+																
+																 });
+							<?php
+						}
+						else{
+							?>
+								$.post( 
+																 'php/pos.php',
+																 {
+																	 cposui:1
+																},
+																 function(data) {
+																	$('#maincontent').html(data);
+																	
+																
+																 });
+							<?php
+						}
+					?>
+													
+				}
+			);
+		</script>
+			
+			<div class="box" style = "margin-top:-5px;">
+			
+				<div class="box-body" id = "itemlistui">
+					<label>SEARCH ITEMS</label>
+					<input type = "text" class = "form-control" id = "barcode"  style = "margin:auto;
+					background-color:#fff;border-radius:5px;font-size:20px;font-weight:bold;" autocomplete="off">
+					<div id = "search_result"></div>
+					<div id = "qntyui"></div>						
+					<?php //pos_category('');?>
+					<script>
+											/*$("#barcode").keyup(
+													function(e)
+													{
+															$("#clickval").val("");
+															var s = $("#barcode").val();
+																if(s != "")
+																{
+																	$.post( 
+																	'php/main.php',
+																	 { itemq: s },
+																	 function(data) {
+																		$('#search_result').html(data);
+																	 });
+																}
+																else
+																{
+																	$('#search_result').html("");
+																}
+													});*/
+						
+						$("#barcode").keyup(
+							function(e)
+							{
+									var key = e.which;
+									
+									if(key == 13)
+									{
+										if($("#barcode").val() != '')
+										{
+											//$("#barcode").val('');
+											
+													$.post( 
+																 'php/pos.php',
+																 {
+																	 add_item_id:$("#barcode").val(),
+																	 frombarcode:1
+																},
+																 function(data) {
+																	$('#click').html(data);
+																	
+																 });
+										}
+									}
+									else if(key != 13 && key != 40)
+									{
+											var s = $("#barcode").val();
+																	if(s != "")
+																	{
+																		$.post( 
+																		'php/main.php',
+																		 { itemq: s },
+																		 function(data) {
+																			$('#search_result').html(data);
+																		 });
+																	}
+																	else
+																	{
+																		$('#search_result').html("");
+																	}
+									}
+									
+								
+							}
+						);
+					</script>
+				</div>
+			</div>	
+			<div class="box" style = "margin-top:-15px;">
+				<div class="box-header with-border">
+					<h3 class="box-title" id = "itemtitle">ITEM LIST</h3>
+					  <div class="box-tools pull-right" id = "item-toggle">
+						
+					  </div>
+					</div
+				</div>
+				<div class="box-body">
+					<div class="box" style = "margin-top:-12px;height:500px;">
+						<div class="box-body" id = "positemlist">
+							<?php pos_item_list($_SESSION['order'],0);?>
+						</div>
+					</div>
+				</div>
+			</div>			
 	<?php
 }
-
 ?>

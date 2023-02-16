@@ -6771,7 +6771,7 @@ function itemlist($key,$cat,$class,$print)
 							?><td>
 								<a href = "" id = "bedit<?php echo $ctr;?>" class = "dbtn btn-success btn-sm btn-xs btn-flat">EDIT</a>
 								<a href = "" id = "bdel<?php echo $ctr;?>" class = "dbtn btn-danger btn-sm btn-xs btn-flat">DELETE</a>
-								<a href = "" id = "addon<?php echo $ctr;?>" class = "dbtn btn-warning btn-sm btn-xs btn-flat">ADD ONS</a>
+								
 								
 							</td>
 							<?php
@@ -6838,29 +6838,6 @@ function itemlist($key,$cat,$class,$print)
 							
 							
 							<script>
-								$("#addon<?php echo $ctr;?>").click(
-									function(e)
-									{
-										e.preventDefault();
-										
-											$("#modal2").modal("show");
-											$("#modalbody2").css("max-width","75%");
-											
-											//$("#streetform").html(loading);
-											$("#modalui2").html(loading);
-											$.post( 
-												'php/main.php',
-												{
-													addonui:<?php echo $row['item_id'];?>
-													
-												},
-												function(data) {
-													$('#modalui2').html(data);		
-												});
-										
-									}
-								);
-								
 								$("#bedit<?php echo $ctr;?>").click(
 									function(e)
 									{
@@ -7387,10 +7364,35 @@ function classificationlist($print)
 						
 								<a href = "" id = "bedit<?php echo $ctr;?>" class = "dbtn btn-success btn-sm btn-xs btn-flat">EDIT</a>
 								<a href = "" id = "bdel<?php echo $ctr;?>" class = "dbtn btn-danger btn-sm btn-xs btn-flat">DELETE</a>
+								<a href = "" id = "addon<?php echo $ctr;?>" class = "dbtn btn-warning btn-sm btn-xs btn-flat">ADD ONS</a>
+								
 						
 							</td>
 							
 							<script>
+								$("#addon<?php echo $ctr;?>").click(
+									function(e)
+									{
+										e.preventDefault();
+										
+											$("#modal2").modal("show");
+											$("#modalbody2").css("min-width","75%");
+											
+											//$("#streetform").html(loading);
+											$("#modalui2").html(loading);
+											$.post( 
+												'php/main.php',
+												{
+													addonui:<?php echo $row['classification_id'];?>
+													
+												},
+												function(data) {
+													$('#modalui2').html(data);		
+												});
+										
+									}
+								);
+								
 								$("#bedit<?php echo $ctr;?>").click(
 									function(e)
 									{
