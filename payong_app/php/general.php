@@ -52,6 +52,21 @@ function daily_weather($dfrom,$dto,$location,$level,$print)
 		and forecast_daily_details.daily_forecast_rainfall_id = lup_rainfall_legends.rainfall_legend_id
 		and forecast_daily_details.daily_forecast_rain_percent_id = lup_rainpercentage_legends.rain_percentage_legend_id
 		and lup_locations.province_id = lup_provinces.province_id"; 
+		
+		if(!empty($dfrom))
+		{	
+			$string = $string." and (STR_TO_DATE(forecast_daily_details.forecast_date,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+			STR_TO_DATE(forecast_daily_details.forecast_date,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
+		
+		}
+		
+		if(!empty($location) && $location != 'all')
+		{	
+			$string = $string." and lup_locations.location_id = $location";
+		
+		}
+		
+		
 		//echo $string;
 		$query = mysqli_query($con,$string);
 	?>
@@ -550,25 +565,23 @@ function locations($level)
 				<th></th>
 				<th>#</th>
 				<th>DESCRIPTION</th>
-				<th>REGION</th>				
-				<th>COORDINATES</TH>
-				<th></th>
+				<th>PROVINCES</th>				
 				<th></th>
 			</thead>
 		<?PHP
 			$ctr = 1;
 			while($row = mysqli_fetch_assoc($query))
 			{
+				$pro = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_provinces where province_id = $row[province_id]"));
+	
 				?>
 				<tr>
 					<td><input type = "checkbox" name = "select<?php echo $ctr;?>"></td>
 					<td><?php echo $ctr;?></td>
 					<td><?php echo $row['location_description'];?></td>
-					<td></td>
-					<td><?php echo $row['coordinates'];?></td>
-					<td></td>
+					<td><?php echo $pro['description'];?></td>
 					<td id = "controlui<?php echo $ctr;?>">
-						<button class = "btn btn-success btn-flat btn-xs" id = "details<?php echo $ctr;?>">VIEW MAP</button>	
+						<button class = "btn btn-success btn-flat btn-xs" id = "details<?php echo $ctr;?>">MAP COORDINATES</button>	
 						<button class = "btn btn-danger btn-flat btn-xs" id = "advdelete<?php echo $ctr;?>">DELETE</button>	
 						<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
 					</td>

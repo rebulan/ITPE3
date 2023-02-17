@@ -1433,9 +1433,9 @@ if(isset($_REQUEST['browselocation']))
 					<div class = "row">	
 							<div class="col-md-3">
 								<div class = "form-group">
-									<label>REGIONS:</label>
+									<label>PROVINCES:</label>
 									<?PHP
-									$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
+									$pquery = mysqli_query($con,"Select * from lup_provinces where isdeleted = 0");
 									?>
 									<select name = "blocregion" id = "blocregion" class="form-control">
 													<option value = 'all' "Selected">ALL</option>
@@ -1443,7 +1443,7 @@ if(isset($_REQUEST['browselocation']))
 													while($prow = mysqli_fetch_assoc($pquery))
 													{
 												?>
-													<option value = "<?php echo $prow['region_id'];?>"><?php echo $prow['region_description'];?></option>
+													<option value = "<?php echo $prow['province_id'];?>"><?php echo $prow['province_description'];?></option>
 												<?php
 													}
 												?>
@@ -2271,7 +2271,7 @@ if(isset($_REQUEST['browsedwether']))
 								</div>		
 							</div>
 							<script>
-								$("#wlocation").select2();
+								$("#fwlocation").select2();
 							</script>
 							<div class="col-md-3" style = "padding-top:25px;">
 									<div class = "form-group">

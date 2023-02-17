@@ -13,9 +13,13 @@ require "../php/connect.php";
 	
 		if(!empty($_GET['limit']))
 			$limit = $_GET['limit'];
-
+		
+		if(!empty($_GET['DailyAgriID']))
+			$id = $_GET['DailyAgriID'];
+		
 
 		$str = "SELECT 
+		forecast_agri.forecast_agri_id as ForecastAgriID,
 		CONCAT(lup_locations.location_description,',',lup_provinces.description) as LocationDescription,
 		forecast_agri.forecast_agri_date as AgriDate,
 		forecast_agri.location_id,
@@ -35,6 +39,9 @@ require "../php/connect.php";
 		
 		if(!empty($location))
 			$str = $str." and CONCAT(lup_locations.location_description,',',lup_provinces.description) = '$location'";
+		
+		if(!empty($id))
+			$str = $str." and forecast_agri.forecast_agri_id = '$id'";
 		
 		if(!empty($fdate))
 		{
@@ -61,7 +68,7 @@ require "../php/connect.php";
 		
 		
 		while($record = mysqli_fetch_assoc($result)) {
-			
+			$rows['ForecastAgriID'] = $record['ForecastAgriID'];
 			$rows['LocationDescription'] = $record['LocationDescription'];
 			$rows['AgriDate'] = $record['AgriDate'];
 			$rows['Weather_Description'] = $record['Weather_Description'];
