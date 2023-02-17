@@ -5905,7 +5905,7 @@ function pos_item_list2($tran,$print)
 	
 }
 
-function pos_items($class,$cat,$dep,$key)
+function pos_items($sales_id,$class,$cat,$dep,$key)
 {
 	global $con;
 	
@@ -5931,8 +5931,8 @@ function pos_items($class,$cat,$dep,$key)
 		
 	}
 	
-	$icus = mysqli_fetch_assoc(mysqli_query($con,"Select customer_profile.* from pos_sales, customer_profile where 
-	pos_sales.pos_sales_id = $_SESSION[tran] and pos_sales.customer_id = customer_profile.customer_id"));
+	//$icus = mysqli_fetch_assoc(mysqli_query($con,"Select customer_profile.* from pos_sales, customer_profile where 
+	//pos_sales.pos_sales_id = $pos_sales_id and pos_sales.customer_id = customer_profile.customer_id"));
 	
 	//$icgroup = mysqli_fetch_assoc(mysqli_query($con,"Select lup_customer_type_group.pricing from lup_customer_type,lup_customer_type_group where 
 	//lup_customer_type.customer_type_id = $icus[customer_type_id] and lup_customer_type.customer_type_group = lup_customer_type_group.customer_type_group_id"));
@@ -5994,10 +5994,12 @@ function pos_items($class,$cat,$dep,$key)
 						$("#item<?php echo $ctr;?>").click(
 							function()
 							{
+									
 															$.post( 
 																 'php/pos.php',
 																 {
-																	 add_item_id:'<?php echo $row['item_code'];?>'
+																	 add_item_id:'<?php echo $row['item_code'];?>',
+																	 add_sales_id:'<?php echo $sales_id;?>'
 																},
 																 function(data) {
 																	$('#click').html(data);
@@ -6034,10 +6036,11 @@ function pos_items($class,$cat,$dep,$key)
 		</div>
 	<?php
 }
-function pos_category($class)
+function pos_category($sales_id,$class)
 {
-	global $con;
 	
+	global $con;
+	echo $sales_id;
 	$string = "Select * from pos_lup_classification where isdeleted = 0 and visible = 1";
 	
 	if(!empty($class))
@@ -6085,7 +6088,8 @@ function pos_category($class)
 												 $.post( 
 																 'php/pos.php',
 																 {
-																	 positems:item
+																	 positems:item,
+																	 positems_sales_id:'<?php echo $sales_id;?>'
 																},
 																 function(data) {
 																	$('#positemlist').html(data);

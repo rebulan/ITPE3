@@ -172,7 +172,7 @@ if(!empty($_REQUEST['cclassui']))
 if(!empty($_REQUEST['positems']))
 {
 	//echo "AAAA";
-	pos_items('',$_REQUEST['positems'],'','');
+	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','');
 }
 if(!empty($_REQUEST['itemqnty']))
 {
@@ -325,6 +325,7 @@ if(!empty($_POST['add_item_id']))
 																		'php/pos.php',
 																		{
 																			posaddqtyui:'<?php echo $i['item_id'];?>',
+																			posaddsalesid:'<?php echo $add_sales_id;?>',
 																			frombr:'<?php echo $frombr;?>'
 																		},
 																		function(data) {
@@ -348,7 +349,7 @@ if(!empty($_POST['posaddqtyui']))
 {
 	foreach($_POST as $key=>$val) {
 		${$key} = trim(strtoupper($val));
-	//echo "The value of ".$key." is ". $val." <br>";
+	echo "The value of ".$key." is ". $val." <br>";
 	} 
 	$i = mysqli_fetch_assoc(mysqli_query($con, "Select * from pos_lup_item where item_id = '$posaddqtyui'"));
 	?>
@@ -433,6 +434,7 @@ if(!empty($_POST['posaddqtyui']))
 						<div class="col-md-8">
 						<div class="form-group">
 							<input type = "hidden" name = "add_item_id2" value = "<?php echo $posaddqtyui;?>">
+							<input type = "hidden" name = "add_sales_id2" value = "<?php echo $posaddsalesid;?>">
 							<input type = "hidden" name = "add_frombr" value = "<?php echo $frombr;?>">
 							<input type="number" class = "form-control" id = "pos_qnty2" name = "pos_qnty2" data-validation="number"
 							data-validation-error-msg="Enter Quantity" autocomplete = "off">				
@@ -565,7 +567,7 @@ if(!empty($_REQUEST['add_item_id2']))
 				
 				$save = mysqli_query($con,"insert into pos_sales_detail set
 				sales_invoice_number = '',
-				pos_sales_id = '$_SESSION[tran]',
+				pos_sales_id = '$add_sales_id2',
 				branch_id = '$row[branch_id]',
 				unit_id = $i[unit_id],
 				item_id = '$i[item_id]',
@@ -5768,7 +5770,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	
 	$total = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(grand_total) as total from pos_sales_detail where 
 	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
-	
+	//echo $_SESSION['tran']." _AA";
 	if(!empty($_REQUEST['iscus']))
 	{
 		?>
@@ -5880,7 +5882,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 												$.post( 
 																 'php/pos.php',
 																 {
-																	 poscategoryui:1,
+																	 poscategoryui:'<?php echo $_SESSION['tran'];?>'
 																	 
 																},
 																 function(data) {
@@ -6024,6 +6026,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 																 'php/pos.php',
 																 {
 																	 add_item_id:$("#barcode").val(),
+																	 add_sales_id:'<?php echo $_SESSION['tran'];?>',
 																	 frombarcode:1
 																},
 																 function(data) {
@@ -6059,7 +6062,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 												'php/pos.php',
 												{
 													fin:1,
-													fiscus:'<?php echo $cid;?>'
+													fiscus:0
 													
 												},
 												function(data) {
@@ -6104,7 +6107,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 }
 if(!empty($_REQUEST['poscategoryui']))
 {
-	pos_category('');
+	pos_category($_REQUEST['poscategoryui'],'');
 }
 if(!empty($_REQUEST['itemtoggleui']))
 {
@@ -6119,7 +6122,7 @@ if(!empty($_REQUEST['itemtoggleui']))
 				$.post( 
 												'php/pos.php',
 												{
-													poscategoryui:1
+													poscategoryui:'<?php echo $_SESSION['tran'];?>'
 												},
 												function(data) {
 													$('#positemlist').html(data);
@@ -6155,6 +6158,11 @@ if(!empty($_REQUEST['cleartran']))
 {
 	mysqli_query($con,"Update pos_sales_detail set isdeleted = 1 where pos_sales_id = $_SESSION[tran]");
 	mysqli_query($con,"Update pos_sales_settlement set isdeleted = 1 where pos_sales_id = $_SESSION[tran]");
+}
+if(!empty($_REQUEST['clearorder']))
+{
+	mysqli_query($con,"Update pos_sales_detail set isdeleted = 1 where pos_sales_id = $_SESSION[order]");
+	mysqli_query($con,"Update pos_sales_settlement set isdeleted = 1 where pos_sales_id = $_SESSION[order]");
 }
 if(!empty($_REQUEST['renderuii']))
 {
@@ -6371,66 +6379,14 @@ if(isset($_REQUEST['torderui']))
 	if(isset($_REQUEST['posui2']))
 		$id = $_REQUEST['posui2'];
 	
-	if(isset($_SESSION['prevtran']))
-		$_SESSION['tran'] = $_SESSION['prevtran'];
-	
-	if(isset($_REQUEST['takeorderui']))
-	{
-		$user = $_REQUEST['takeorderui'];
-		$trow = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where sales_invoice_number = '' and created_by_fullname = $user and isdeleted = 0"));
-		if(!empty($trow))
-		{
-			$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales, se_user where pos_sales.pos_sales_id = $_SESSION[tran]
-			and pos_sales.created_by_fullname = se_user.user_id and se_user.istable = 0"));
-			if($check > 0)
-			{
-				$_SESSION['prevtran'] = $_SESSION['tran'];
-			}
-			else
-			{
-				$_SESSION['prevtran'] = "";
-			}
-		
-			$_SESSION['tran'] = $trow['pos_sales_id'];
-		}
-		else
-		{
-			$_SESSION['tran'] = '';
-		}
-	}
-	else
-	{
-		$user = get_user_id($_SESSION['c_craft']);
-	}
-	
 	$cid = 0;
-	$cfullname = 'cus';
-	if(!empty($_REQUEST['pos_orderui']))
-	{
-		$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales, se_user where pos_sales.pos_sales_id = $_SESSION[tran]
-		and pos_sales.created_by_fullname = se_user.user_id and se_user.istable = 0"));
-			if($check > 0)
-			{
-				$_SESSION['prevtran'] = $_SESSION['tran'];
-			}
-			else
-			{
-				$_SESSION['prevtran'] = "";
-			}
-			
-		$_SESSION['tran'] = $_REQUEST['pos_orderui']; 
-	}
-	if(!empty($_REQUEST['posorderui']))
-	{
-		$cfullname = get_customer_fullname($id);
-		$cid = $id;
-	}
 	
 	$trn = 0;
-	if(!empty($_SESSION['tran']))
+	if(!empty($_SESSION['order']))
 	{
-		$trn = $_SESSION['tran'];
+		$trn = $_SESSION['order'];
 	}
+	$user = get_user_id($_SESSION['c_craft']);
 	$branch = get_branch($user);
 	$agent = get_agent($user);
 	
@@ -6458,7 +6414,7 @@ if(isset($_REQUEST['torderui']))
 																});
 		</script>
 	<?php
-	if(empty($_SESSION['tran']))
+	if(empty($_SESSION['order']))
 	{
 		$validCharacters = "ABCDEFGHIJKLMNOPQRSTUXYVWZabcdefghijklmnopqrstuvwxyz0123456789";
 			$validCharNumber = strlen($validCharacters);
@@ -6475,27 +6431,27 @@ if(isset($_REQUEST['torderui']))
 		branch_id = '$branch',
 		sales_invoice_number = '',
 		customer_id = $cid,
-		customer_fullname = '$cfullname',
+		customer_fullname = '',
 		result = '$result',
 		created_by_fullname = '$user',
 		remarks = '',
 		isdeleted = 0
 		");
 		
-		$_SESSION['tran'] = '';
+		$_SESSION['order'] = '';
 		$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where result = '$result'"));
 		$_SESSION['prev'] = $sales_id['pos_sales_id'];
-		$_SESSION['tran'] = $sales_id['pos_sales_id'];
+		$_SESSION['order'] = $sales_id['pos_sales_id'];
 	}
-	if($cid == 0)
-	{
-		mysqli_query($con,"Update pos_sales set customer_id = 0, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[tran]");
-	}
-	else{
-		mysqli_query($con,"Update pos_sales set customer_id = $cid, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[tran]");
-	}
+	//if($cid == 0)
+	//{
+		//mysqli_query($con,"Update pos_sales set customer_id = 0, customer_fullname = '$cus' where pos_sales_id = $_SESSION[order]");
+	//}
+	//else{
+		//mysqli_query($con,"Update pos_sales set customer_id = $cid, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[order]");
+	//}
 	
-	$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[tran]"));
+	$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[order]"));
 	
 	if(!isset($_SESSION['prev']))
 		$_SESSION['prev'] = 0;
@@ -6511,13 +6467,13 @@ if(isset($_REQUEST['torderui']))
 	$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and branch_id = $branch
 	and pos_sales_id =0"));
 	
-	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[tran] where invoice_number_id = $irow[invoice_number_id]");
+	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[order] where invoice_number_id = $irow[invoice_number_id]");
 	
 	$totalq = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
-	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
+	pos_sales_id = $_SESSION[order] and isdeleted = 0"));
 	
 	$total = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(grand_total) as total from pos_sales_detail where 
-	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
+	pos_sales_id = $_SESSION[order] and isdeleted = 0"));
 	?>	
 	<div class="callout callout-warning" style = "margin-top:-10px;">
         <div class = "row">
@@ -6563,7 +6519,7 @@ if(isset($_REQUEST['torderui']))
 												$.post( 
 																 'php/pos.php',
 																 {
-																	 poscategoryui:1,
+																	 poscategoryui:'<?php echo $_SESSION['order'];?>',
 																	 
 																},
 																 function(data) {
@@ -6574,7 +6530,7 @@ if(isset($_REQUEST['torderui']))
 																 'php/pos.php',
 																 {
 																	 
-																	 itemtoggleui:1
+																	 oitemtoggleui:1
 																},
 																 function(data) {
 																	$('#item-toggle').html(data);
@@ -6590,7 +6546,7 @@ if(isset($_REQUEST['torderui']))
 												$.post( 
 																 'php/pos.php',
 																 {
-																	 cleartran:1
+																	 clearorder:1
 																},
 																 function(data) {
 																	$('#click').html(data);
@@ -6606,7 +6562,7 @@ if(isset($_REQUEST['torderui']))
 								$.post( 
 																 'php/pos.php',
 																 {
-																	 posui:1
+																	 torderui:1
 																},
 																 function(data) {
 																	$('#maincontent').html(data);
@@ -6680,6 +6636,7 @@ if(isset($_REQUEST['torderui']))
 																 'php/pos.php',
 																 {
 																	 add_item_id:$("#barcode").val(),
+																	 add_sales_id:'<?php echo $_SESSION['order'];?>',
 																	 frombarcode:1
 																},
 																 function(data) {
