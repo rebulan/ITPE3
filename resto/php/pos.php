@@ -349,7 +349,7 @@ if(!empty($_POST['posaddqtyui']))
 {
 	foreach($_POST as $key=>$val) {
 		${$key} = trim(strtoupper($val));
-	echo "The value of ".$key." is ". $val." <br>";
+	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	$i = mysqli_fetch_assoc(mysqli_query($con, "Select * from pos_lup_item where item_id = '$posaddqtyui'"));
 	?>
@@ -430,7 +430,7 @@ if(!empty($_POST['posaddqtyui']))
 		<div class="box box-warning">
 			<div class="box-body">
 			
-				<div class="form-row" >
+	
 						<div class="col-md-8">
 						<div class="form-group">
 							<input type = "hidden" name = "add_item_id2" value = "<?php echo $posaddqtyui;?>">
@@ -440,9 +440,7 @@ if(!empty($_POST['posaddqtyui']))
 							data-validation-error-msg="Enter Quantity" autocomplete = "off">				
 						</div>
 						</div>
-					
-				
-				</div>
+
 				
 				<script>
 					$('#modal4').on('shown.bs.modal', function () {
@@ -675,7 +673,7 @@ if(!empty($_REQUEST['add_item_id2']))
 				
 				?>
 				<script>
-					 $.post( 
+											$.post( 
 																		 'php/pos.php',
 																		 {
 																			 totalquantity:1
@@ -684,7 +682,7 @@ if(!empty($_REQUEST['add_item_id2']))
 																			$('#totalqntyui').html(data);
 																		
 																		 });
-					 $.post( 
+											$.post( 
 																		 'php/pos.php',
 																		 {
 																			 subtotal:1
@@ -693,6 +691,26 @@ if(!empty($_REQUEST['add_item_id2']))
 																			$('#totalui').html(data);
 																		
 																		 });
+					
+											$.post( 
+																		 'php/pos.php',
+																		 {
+																			 ototalquantity:1
+																		},
+																		 function(data) {
+																			$('#ototalqntyui').html(data);
+																		
+																		 });
+											$.post( 
+																		 'php/pos.php',
+																		 {
+																			 osubtotal:1
+																		},
+																		 function(data) {
+																			$('#ototalui').html(data);
+																		
+																		 });
+																		 
 				</script>
 			<?php
 		}
@@ -1068,6 +1086,47 @@ if(!empty($_REQUEST['subtotal']))
 
 	}
 }
+if(!empty($_REQUEST['ototalquantity']))
+{
+	$id = $_SESSION['order'];
+	
+	$total = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
+	pos_sales_id = $id and isdeleted = 0"));
+	IF(!empty($total))
+	{
+		?>
+		TOTAL QUANTITY: <?php echo number_format($total['total'],2);?>
+		<?php
+	}
+	else
+	{
+		?>
+		TOTAL QUANTITY: 0.00
+		<?php
+
+	}
+}
+if(!empty($_REQUEST['osubtotal']))
+{
+	$id = $_SESSION['order'];
+	
+	$total = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(grand_total) as total from pos_sales_detail where 
+	pos_sales_id = $id and isdeleted = 0"));
+	IF(!empty($total))
+	{
+		?>
+	TOTAL QUANTITY: <?php echo number_format($total['total'],2);?>
+		<?php
+	}
+	else
+	{
+		?>
+		TOTAL QUANTITY: 0.00
+		<?php
+
+	}
+}
+
 if(!empty($_REQUEST['fin']))
 {
 	foreach($_REQUEST as $key=>$val) {
@@ -6149,6 +6208,51 @@ if(!empty($_REQUEST['itemtoggleui']))
 	</script>
 	<?php
 }
+if(!empty($_REQUEST['oitemtoggleui']))
+{
+	?>
+	<button type="button" class="btn btn-primary btn-xs btn-flat" id = "iback">BACK</button>
+	<button type="button" class="btn btn-success btn-xs btn-flat" id = "ilist">ITEM LIST</button>
+	<script>
+		$("#iback").hide();
+		$("#iback").click(
+			function()
+			{
+										$.post( 
+												'php/pos.php',
+												{
+													poscategoryui:'<?php echo $_SESSION['order'];?>'
+												},
+												function(data) {
+													$('#positemlist').html(data);
+													$("#iback").hide();
+												});
+			}
+		);
+		$("#ilist").click(
+			function()
+			{
+										$.post( 
+												'php/pos.php',
+												{
+													oretitemlist:1
+												},
+												function(data) {
+													$('#positemlist').html(data);
+													$("#itemtitle").html('ITEMS LIST');
+													$("#item-toggle").html('');
+												});
+			}
+				
+		);
+	</script>
+	<?php
+}
+if(!empty($_REQUEST['oretitemlist']))
+{
+	pos_item_list($_SESSION['order'],0);
+}
+
 if(!empty($_REQUEST['retitemlist']))
 {
 	pos_item_list($_SESSION['tran'],0);
@@ -6543,6 +6647,10 @@ if(isset($_REQUEST['torderui']))
 			$("#cancel").click(
 				function()
 				{
+						var r = confirm("Confirm Reset");
+						
+						if(r == true)
+						{
 												$.post( 
 																 'php/pos.php',
 																 {
@@ -6550,16 +6658,13 @@ if(isset($_REQUEST['torderui']))
 																},
 																 function(data) {
 																	$('#click').html(data);
-																
+					
 																 });
 																 
-					$('#maincontent').html(loading);
+										$('#maincontent').html(loading);
 					
-					<?php
-						if($cid == 0)
-						{
-							?>
-								$.post( 
+	
+														$.post( 
 																 'php/pos.php',
 																 {
 																	 torderui:1
@@ -6567,25 +6672,9 @@ if(isset($_REQUEST['torderui']))
 																 function(data) {
 																	$('#maincontent').html(data);
 																	
-																
 																 });
-							<?php
+					
 						}
-						else{
-							?>
-								$.post( 
-																 'php/pos.php',
-																 {
-																	 cposui:1
-																},
-																 function(data) {
-																	$('#maincontent').html(data);
-																	
-																
-																 });
-							<?php
-						}
-					?>
 													
 				}
 			);
