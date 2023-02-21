@@ -28,6 +28,124 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function takeorders($print,$prep)
+{
+	global $con;
+	$string = "Select * from  pos_sales,se_user where pos_sales.isdeleted = 0 and pos_sales.sales_invoice_number = ''
+	and se_user.user_id = pos_sales.created_by_fullname and pos_sales.order_count != 0 order by pos_sales.order_count";
+	
+	$query = mysqli_query($con,$string);
+	?>
+	<table class = "table table-bordered table-hover table-xs" id = "takeordertable">
+								<thead>
+								<?PHP
+								IF($print == 0)
+								{
+								?>
+									<th></th>
+								<?php
+								}
+								?>
+									
+									<th>ORDER NO.</th>
+									<th>ORDER TYPE</th>
+									<th>TOTAL QUANTITY</th>
+									<th>TOTAL PRICE</th>
+									
+								</thead>
+			<?php
+			$ctr = 1;
+			$tq = 0;
+			$total = 0;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$otype = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_order_type where order_type_id = $row[order_type_id]"));
+				$pdetail = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as QTY, SUM(grand_total) as price from pos_sales_detail where pos_sales_id = $row[pos_sales_id] and isdeleted = 0
+				and finalize = 1"));
+				if($pdetail['QTY'] > 0)
+				{
+				?>
+				<tr>
+					<?PHP
+								IF($print == 0)
+								{
+								?>
+									<td>
+									<?php
+									if($prep == 0)
+									{
+										?>
+										<a href = "" id = "open<?php echo $ctr;?>" class = "btn btn-success btn-xs btn-flat btn-block">OPEN</a>	
+										<script>
+											$("#open<?php echo $ctr;?>").click(
+												function(e)
+												{
+													e.preventDefault();
+													
+														$.post( 
+															'php/pos.php',
+															{
+																currentorderui:<?php echo $row['pos_sales_id'];?>
+															},
+															function(data) {
+																$('#maincontent').html(data);		
+															});
+													
+													
+												}
+											);
+											
+											
+											</script>	
+										<?php
+									}
+									else
+									{
+										echo "<b>DONE</b>";
+									}
+									?>
+							
+									</td>
+								<?php
+								}
+								?>
+					
+					<th><?php echo $row['order_count'];?></th>
+					<th><?php echo $otype['order_type_description'];?></th>
+					<td><?php echo $pdetail['QTY'];?></td>
+					<td><?php echo $pdetail['price'];?></td
+				</tr>
+				<?php
+				$ctr++;
+				}
+			}
+			
+			?>
+	</table>
+	<?php
+		if($print == 0)
+		{
+		?>
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					$('#takeordertable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : true
+					});												
+				}
+			);
+		</script>
+	<?php
+		}
+}
+
 function tables($level)
 {
 		global $con;
@@ -5451,7 +5569,7 @@ function discountlist($tran,$print)
 	
 }
 
-function pos_item_list($tran,$print)
+function pos_item_list($tran,$print,$fromorder)
 {
 	global $con;
 	
@@ -5464,17 +5582,25 @@ function pos_item_list($tran,$print)
 									<?php
 									if($print == 0)
 									{
+										
 									?>
 										<th></th>
 									<?php
 									}
 									?>
 									<th>#</th>
-									<th>ITEM CODE</th>
+									
 									<th>ITEM DESCRIPTION</th>
 									<th>QUANTITY</th>
 									<th>PRICE</th>
+									<?php
+									if($fromorder != 1)
+									{
+									?>
 									<th>ITEM DISCOUNT</th>
+									<?php
+									}
+									?>
 									<th>TOTAL</th>
 									
 									
@@ -5493,23 +5619,41 @@ function pos_item_list($tran,$print)
 					<?php
 									if($print == 0)
 									{
+										
 									?>
-					<td><button class = "btn btn-danger btn-flat btn-xs" id = "del<?php echo $ctr;?>">x</button></td>
+											<td>
+											<?php
+											if($row['finalize'] != 1 && $fromorder == 1)
+											{
+											?>
+												<button class = "btn btn-danger btn-flat btn-xs" id = "del<?php echo $ctr;?>">x</button>
+											<?php
+											}
+											?>
+											</td>
 					<?php
+										
 									}
 					?>
 					<td><?php echo $ctr;?></td>
-					<td><?php echo $row['item_code']?></td>
 					<td><?php echo $row['item_description']?></td>
 					<?php
 									if($print == 0 )
 									{
+										if($row['finalize'] != 1 && $fromorder == 1)
+										{
 									?>
 									<td>
-										<input type = "text" id = "iqnty<?php echo $ctr;?>" value = "<?php echo $row['quantity'];?>" style = "width:70px;">
-										<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>" style = "display:none;"><i class="fa fa-check"></i></button>
+										<input type = "number" id = "iqnty<?php echo $ctr;?>" value = "<?php echo $row['quantity'];?>" style = "width:70px;">
+										<button class = "btn btn-success btn-flat btn-xs" id = "iedit<?php echo $ctr;?>"><i class="fa fa-check"></i></button>
 									</td>
-					<?php
+									<?php
+										}
+										else{
+											?>
+											<td><?php echo $row['quantity'];?></td>
+											<?php
+										}
 									}
 									else
 									{
@@ -5521,7 +5665,7 @@ function pos_item_list($tran,$print)
 									{
 									?>
 									<td>
-										<input type = "text" id = "iprice<?php echo $ctr;?>" value = "<?php echo $row['item_price'];?>" style = "width:70px;">
+										<input type = "number" id = "iprice<?php echo $ctr;?>" value = "<?php echo $row['item_price'];?>" style = "width:70px;">
 										<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>" style = "display:none;"><i class="fa fa-check"></i></button>
 									</td>
 									<?php
@@ -5538,9 +5682,13 @@ function pos_item_list($tran,$print)
 					<?php
 					if($print == 0)
 					{
+				
+						if($fromorder != 1)
+						{
+					
 					?>
 					<td>
-						<input type = "text" id = "idis<?php echo $ctr;?>" value = "<?php echo $row['item_discount'];?>" style = "width:70px;"
+						<input type = "number" id = "idis<?php echo $ctr;?>" value = "<?php echo $row['item_discount'];?>" style = "width:70px;"
 						
 						<label><input type = "checkbox" id = "iper<?php echo $ctr;?>" value = "1"
 						<?php
@@ -5549,6 +5697,7 @@ function pos_item_list($tran,$print)
 						?>><b> % </b></label>
 					</td>
 					<?php
+						}
 					}
 					else
 					{
@@ -5573,7 +5722,8 @@ function pos_item_list($tran,$print)
 											$.post( 
 												'php/pos.php',
 												{
-													positemdel:<?php echo $row['pos_sales_detail_id'];?>
+													positemdel:<?php echo $row['pos_sales_detail_id'];?>,
+													positemdelfrom:<?php echo $fromorder;?>
 													
 												},
 												function(data) {
@@ -5687,7 +5837,8 @@ function pos_item_list($tran,$print)
 												{
 													positemedit:<?php echo $row['pos_sales_detail_id'];?>,
 													positemeditval:newqnty,
-													positemeditcount:'<?php echo $ctr;?>'
+													positemeditcount:'<?php echo $ctr;?>',
+													positemeditfrom:'<?php echo $fromorder;?>'
 													
 												},
 												function(data) {
@@ -5699,6 +5850,33 @@ function pos_item_list($tran,$print)
 										
 											
 										
+							}
+						);
+						$("#iedit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								
+										if($("#iqnty").val() != '')
+										{
+											//$("#streetform").html(loading);
+											var newqnty = $("#iqnty<?php echo $ctr;?>").val();
+											$("#positemlist").html(loading);
+											$("#barcode").focus();
+											//alert(newqnty);
+											$.post( 
+												'php/pos.php',
+												{
+													positemedit:<?php echo $row['pos_sales_detail_id'];?>,
+													positemeditval:newqnty,
+													positemeditcount:'<?php echo $ctr;?>',
+													positemeditfrom:'<?php echo $fromorder;?>'
+													
+												},
+												function(data) {
+													$('#positemlist').html(data);		
+												});
+												
+										}		
 							}
 						);
 						$("#iprice<?php echo $ctr;?>").click(function () {
@@ -5749,7 +5927,6 @@ function pos_item_list($tran,$print)
 				<td></td>
 				<td></td>
 				<th>TOTAL:</th>
-				<td></td>
 				<th id = "totqnty"><?php echo number_format($tqnty,2);?></th>
 				<?php
 				if($print == 0)
@@ -5759,7 +5936,7 @@ function pos_item_list($tran,$print)
 				<?php
 				}
 				?>
-				<td></td>
+
 				<th id = "totalsub"><?php echo number_format($total,2);?></th>
 				
 				
@@ -5928,7 +6105,7 @@ function pos_items($sales_id,$class,$cat,$dep,$key)
 	
 	if(!empty($key))
 	{
-		
+		$string = $string." and item_description like '%$key%'";
 	}
 	
 	//$icus = mysqli_fetch_assoc(mysqli_query($con,"Select customer_profile.* from pos_sales, customer_profile where 
@@ -6040,7 +6217,6 @@ function pos_category($sales_id,$class)
 {
 	
 	global $con;
-	echo $sales_id;
 	$string = "Select * from pos_lup_classification where isdeleted = 0 and visible = 1";
 	
 	if(!empty($class))

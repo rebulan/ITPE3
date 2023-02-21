@@ -174,6 +174,10 @@ if(!empty($_REQUEST['positems']))
 	//echo "AAAA";
 	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','');
 }
+if(!empty($_REQUEST['add_item_search']))
+{
+	pos_items($_SESSION['order'],'','','',$_REQUEST['add_item_search']);
+}
 if(!empty($_REQUEST['itemqnty']))
 {
 	$id = $_REQUEST['itemqnty'];
@@ -358,7 +362,11 @@ if(!empty($_POST['posaddqtyui']))
 		
 		<?PHP
 			$pquery = mysqli_query($con,"Select * from lup_variations where item_id = $posaddqtyui and isdeleted = 0");
-			$vcount = mysqli_num_rows($pquery);									
+			$vcount = mysqli_num_rows($pquery);	
+
+			$ch = "";
+			if($vcount == 1)
+				$ch = "checked";
 		if($vcount >  0)
 		{
 		?>
@@ -378,7 +386,7 @@ if(!empty($_POST['posaddqtyui']))
 													{
 												?>
 													<tr>
-														<td><label><input type="radio" id = "pos_var" name = "pos_var" data-validation="required"
+														<td><label><input type="radio" <?php echo $ch;?> id = "pos_var" name = "pos_var" data-validation="required"
 							data-validation-error-msg="Select Variation" value = "<?php echo $irow['variation_id'];?>"> <?php echo $irow['description'];?></label></td>
 														<TD><?php echo number_format($irow['unit_price'],2);?></td>
 													</tr>
@@ -431,15 +439,16 @@ if(!empty($_POST['posaddqtyui']))
 			<div class="box-body">
 			
 	
-						<div class="col-md-8">
+						
 						<div class="form-group">
 							<input type = "hidden" name = "add_item_id2" value = "<?php echo $posaddqtyui;?>">
 							<input type = "hidden" name = "add_sales_id2" value = "<?php echo $posaddsalesid;?>">
 							<input type = "hidden" name = "add_frombr" value = "<?php echo $frombr;?>">
 							<input type="number" class = "form-control" id = "pos_qnty2" name = "pos_qnty2" data-validation="number"
-							data-validation-error-msg="Enter Quantity" autocomplete = "off">				
+							data-validation-error-msg="Enter Quantity" autocomplete = "off" value = "1">				
 						</div>
-						</div>
+						
+					
 
 				
 				<script>
@@ -673,6 +682,8 @@ if(!empty($_REQUEST['add_item_id2']))
 				
 				?>
 				<script>
+											$("#opos_otype").focus();
+											
 											$.post( 
 																		 'php/pos.php',
 																		 {
@@ -756,7 +767,9 @@ if(!empty($_REQUEST['add_item_id2']))
 if(!empty($_REQUEST['positemdel']))
 {
 	$id = $_REQUEST['positemdel'];
+	$from = $_REQUEST['positemdelfrom'];
 	
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select pos_sales_id from pos_sales_detail where pos_sales_detail_id = $id"));
 	$del = mysqli_query($con,"Update pos_sales_detail set isdeleted = 1 where pos_sales_detail_id = $id");
 	
 	if(!$del)
@@ -789,7 +802,7 @@ if(!empty($_REQUEST['positemdel']))
 																 });
 		</script>
 	<?php
-	pos_item_list($_SESSION['tran'],0);
+	pos_item_list($row['pos_sales_id'],0,$from);
 	
 }
 if(!empty($_REQUEST['posdiscountdel']))
@@ -917,9 +930,28 @@ if(!empty($_REQUEST['positemedit']))
 																	$('#totalui').html(data);
 																
 																 });
+			 $.post( 
+																 'php/pos.php',
+																 {
+																	 ototalquantity:1
+																},
+																 function(data) {
+																	$('#ototalqntyui').html(data);
+																
+																 });
+			 $.post( 
+																 'php/pos.php',
+																 {
+																	 osubtotal:1
+																},
+																 function(data) {
+																	$('#ototalui').html(data);
+																
+																 });
+																 
 		</script>
 	<?php
-	pos_item_list($_SESSION['tran'],0);
+	pos_item_list($price['pos_sales_id'],0,$positemeditfrom);
 }
 if(!empty($_REQUEST['posidisedit']))
 {
@@ -1182,12 +1214,25 @@ if(!empty($_REQUEST['fin']))
 													</div>
 											</div>
 											
-											<div class="col-md-3" style = "display:none;">
+											<div class="col-md-3">
 													<div class="form-group">
 														<label>Order Type:</label>
 													
-														<input type = "hidden" class = "form-control" name = "pos_otype" value = "1">
-													
+														
+														<Select class = "form-control" name = "pos_otype" data-validation="required"
+															data-validation-error-msg="Select Department">
+																<option value = "" hidden "Selected"> </option>
+															<?php
+															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
+															while($prow = mysqli_fetch_assoc($pmquery))
+															{
+															?>
+																<option value = "<?php echo $prow['order_type_id'];?>"><?php echo $prow['order_type_description'];?></option>
+															
+															<?php
+															}
+															?>
+														</select>
 													</div>
 											</div>
 											<div class="col-md-4" style = "display:none;">
@@ -5808,7 +5853,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	
 	$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[tran]"));
 	
-	if(!isset($_SESSION['prev']))
+	if(empty($_SESSION['prev']))
 		$_SESSION['prev'] = 0;
 	
 	$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[prev]
@@ -6141,7 +6186,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 				<div class="box-body">
 					<div class="box" style = "margin-top:-12px;overflow:auto;height:500px;">
 						<div class="box-body" id = "positemlist">
-							<?php pos_item_list($_SESSION['tran'],0);?>
+							<?php pos_item_list($_SESSION['tran'],0,0);?>
 						</div>
 					</div>
 				</div>
@@ -6250,7 +6295,7 @@ if(!empty($_REQUEST['oitemtoggleui']))
 }
 if(!empty($_REQUEST['oretitemlist']))
 {
-	pos_item_list($_SESSION['order'],0);
+	pos_item_list($_SESSION['order'],0,1);
 }
 
 if(!empty($_REQUEST['retitemlist']))
@@ -6478,10 +6523,61 @@ if(isset($_REQUEST['orderui']))
 		</div>
 	<?php
 }
-if(isset($_REQUEST['torderui']))
+if(isset($_REQUEST['takeorderui']))
 {
-	if(isset($_REQUEST['posui2']))
-		$id = $_REQUEST['posui2'];
+	$level = $_REQUEST['takeorderui'];
+	$user = get_user_id($_SESSION['c_craft']);
+	$agent = get_agent($user);
+	
+	?>
+	<h2>ACTIVE ORDERS</H2>
+	<button class = "btn btn-primary btn-flat" id = "new_order">NEW ORDER</BUTTON>
+		<div id = "markalert"></div>
+		<div class="box">
+			<div class="box-body">
+				<?php takeorders(0,0);?>	
+			</div>
+		</div>
+		<script>
+			$("#new_order").click(
+				function()
+				{
+												$('#maincontent').html(loading);
+												$.post( 
+																'php/pos.php',
+																{
+																	torderui:1
+																	
+																},
+																function(data) {
+																	$('#maincontent').html(data);
+																
+																});
+				}
+			);
+		</script>
+	<?php
+}
+
+if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
+{
+	if(isset($_REQUEST['torderui']))
+	{
+		if(!empty($_SESSION['oprev']))
+			$_SESSION['order'] = $_SESSION['oprev'];
+		else
+			$_SESSION['order'] = "";
+	}
+	
+	if(isset($_REQUEST['currentorderui']))
+	{
+		$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[order] and order_count != 0 and isdeleted = 0"));
+		if($check == 0)
+		{
+			$_SESSION['oprev'] = $_SESSION['order'];
+		}
+		$_SESSION['order'] = $_REQUEST['currentorderui'];
+	}
 	
 	$cid = 0;
 	
@@ -6496,7 +6592,7 @@ if(isset($_REQUEST['torderui']))
 	
 	?>
 		<script>
-			$.post( 
+												$.post( 
 																'php/pos.php',
 																{
 																	renderuii:1
@@ -6544,7 +6640,7 @@ if(isset($_REQUEST['torderui']))
 		
 		$_SESSION['order'] = '';
 		$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where result = '$result'"));
-		$_SESSION['prev'] = $sales_id['pos_sales_id'];
+		//$_SESSION['oprev'] = $sales_id['pos_sales_id'];
 		$_SESSION['order'] = $sales_id['pos_sales_id'];
 	}
 	//if($cid == 0)
@@ -6557,21 +6653,21 @@ if(isset($_REQUEST['torderui']))
 	
 	$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[order]"));
 	
-	if(!isset($_SESSION['prev']))
-		$_SESSION['prev'] = 0;
+	//if(!isset($_SESSION['oprev']))
+		//$_SESSION['oprev'] = 0;
 	
-	$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[prev]
-	and sales_invoice_number = ''"));
+	//$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[oprev]
+	//and sales_invoice_number = ''"));
 	
-	if($pcheck != 0)
-	{
-		mysqli_query($con,"Update lup_invoice_number set pos_sales_id = 0 where pos_sales_id = $_SESSION[prev]");
-	}
+	//if($pcheck != 0)
+	//{
+		//mysqli_query($con,"Update lup_invoice_number set pos_sales_id = 0 where pos_sales_id = $_SESSION[oprev]");
+	//}
 	
-	$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and branch_id = $branch
-	and pos_sales_id =0"));
+	//$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and branch_id = $branch
+	//and pos_sales_id =0"));
 	
-	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[order] where invoice_number_id = $irow[invoice_number_id]");
+	//	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[order] where invoice_number_id = $irow[invoice_number_id]");
 	
 	$totalq = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
 	pos_sales_id = $_SESSION[order] and isdeleted = 0"));
@@ -6581,29 +6677,74 @@ if(isset($_REQUEST['torderui']))
 	?>	
 	<div class="callout callout-warning" style = "margin-top:-10px;">
         <div class = "row">
-											<div class="col-md-3">
+			<form id = "orderform">
+											<div class="col-md-3" style = "display:none;">
 													<div class="form-group">
 														
-														<input type = "date" class = "form-control" name = "pos_date" data-validation="required"
-														data-validation-error-msg="Enter Date" value = "<?php echo date('Y-m-d');?>" readonly>
+														<input type = "hidden" name = "opos_date" value = "<?php echo date('Y-m-d');?>">
 															
 													
 													</div>
 											</div>
 											
-											<div class="col-md-3" style = "display:none;">
+											<div class="col-md-2">
+												<?php
+													if(!isset($_REQUEST['currentorderui']))
+													{
+												?>
 													<div class="form-group">
-														<label>Order Type:</label>
-													
-														<input type = "hidden" class = "form-control" name = "pos_otype" value = "1">
-													
+														<Select class = "form-control" name = "opos_otype" id = "opos_otype" data-validation="required"
+															data-validation-error-msg="Select Order Type">
+																<option value = "" hidden "Selected">SELECT ORDER TYPE</option>
+															<?php
+															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
+															while($prow = mysqli_fetch_assoc($pmquery))
+															{
+															?>
+																<option value = "<?php echo $prow['order_type_id'];?>"><?php echo $prow['order_type_description'];?></option>
+															
+															<?php
+															}
+															?>
+														</select>
 													</div>
+													<?php
+													}
+													else{
+														?>
+															<h3>ORDER NO <?php echo $sales_id['order_count'];?></h3>
+														<?php
+													}
+													?>
 											</div>
-											<div class="col-md-3">
+										
+											<div class="col-md-4">
 													<div class="form-group">
-														<button class = "btn btn-success btn-flat btn-sm" id = "final">FINALIZE</button>
-														<button class = "btn btn-primary btn-flat btn-sm" id = "fin">BROWSE</button>	
+													<?php
+													if(!isset($_REQUEST['currentorderui']))
+													{
+													?>
+														<button class = "btn btn-success btn-flat btn-sm" id = "final">SAVE ORDERS</button>
+													<?php
+													}
+													else
+													{
+														?>
+														<button class = "btn btn-success btn-flat btn-sm" id = "update">UPDATE ORDERS</button>
+														<?php
+													}
+													?>
+														
+														<button class = "btn btn-primary btn-flat btn-sm" id = "new">NEW ORDER</button>
+														<button class = "btn btn-warning btn-flat btn-sm" id = "active">ACTIVE ORDERS</button>
+													<?php
+													if(!isset($_REQUEST['currentorderui']))
+													{
+													?>
 														<button class = "btn btn-danger btn-flat btn-sm" id = "cancel">RESET</button>
+													<?php
+													}
+													?>
 													</div>
 											</div>
 											<div class="col-md-3" id = "ototalqntyui" STYLE = "font-weight:bold;font-size:15px;">
@@ -6612,41 +6753,122 @@ if(isset($_REQUEST['torderui']))
 											<div class="col-md-3" id = "ototalui" STYLE = "font-weight:bold;font-size:15px;">
 												TOTAL SALES: <?php echo number_format($total['total'],2);?>
 											</div>
+				</form>
 		</div>
     </div>
 		<script>
-				$("#barcode").focus();
-				$("#fin").click(
-							function()
-							{
-												$('#positemlist').html(loading);
-												$.post( 
+			$("#update").click(
+				function(e)
+				{
+					e.preventDefault();
+						var r = confirm("Confirm Action");
+						
+						if(r == true)
+						{
+																 
+														$.post( 
 																 'php/pos.php',
 																 {
-																	 poscategoryui:'<?php echo $_SESSION['order'];?>',
-																	 
+																	 updateorderui:1
 																},
 																 function(data) {
-																	$('#positemlist').html(data);
-																	$("#itemtitle").html('BROWSE ITEMS');
-																 });
-												$.post( 
-																 'php/pos.php',
-																 {
-																	 
-																	 oitemtoggleui:1
-																},
-																 function(data) {
-																	$('#item-toggle').html(data);
+																	$('#click').html(data);
 																	
 																 });
+					
+						}
+													
+				}
+				);
+				
+			$("#new").click(
+				function(e)
+				{
+					e.preventDefault();
+						var r = confirm("Confirm Action");
+						
+						if(r == true)
+						{
 																 
-							}
-						);
+										$('#maincontent').html(loading);
+					
+	
+														$.post( 
+																 'php/pos.php',
+																 {
+																	 torderui:1
+																},
+																 function(data) {
+																	$('#maincontent').html(data);
+																	
+																 });
+					
+						}
+													
+				}
+				);
+				$("#active").click(
+				function(e)
+				{
+					e.preventDefault();
+						
+																 
+										$('#maincontent').html(loading);
+					
+	
+														$.post( 
+																 'php/pos.php',
+																 {
+																	 takeorderui:1
+																},
+																 function(data) {
+																	$('#maincontent').html(data);
+																	
+																 });
+					
+						
+													
+				}
+				);
+				
+				$("#final").click(
+					function()
+					{
+						$.validate({
+														form:'#orderform',
+														validateOnBlur : false,
+														errorMessagePosition : 'top',
+														modules : 'security',
+														onSuccess : function($form) {
+														
+															 var formData = $('#orderform').serializeArray();
+																 //var formData = new FormData($('#regform')[0]);
+																 $("#positemlist").html(loading);
+																 
+																		$.ajax({
+																			url :  'php/pos.php',
+																			type : 'post',
+																			datatype : 'json',
+																			data : formData,
+							
+																			success : function(data) {
+																				$("#positemlist").html(data);
+																				
+																			}
+																		});
+
+														  return false; // Will stop the submission of the form
+														},
+													});
+					}
+				);									
+				$("#barcode").focus();
+				
 						
 			$("#cancel").click(
-				function()
+				function(e)
 				{
+					e.preventDefault();
 						var r = confirm("Confirm Reset");
 						
 						if(r == true)
@@ -6683,13 +6905,88 @@ if(isset($_REQUEST['torderui']))
 			<div class="box" style = "margin-top:-5px;">
 			
 				<div class="box-body" id = "itemlistui">
-					<label>SEARCH ITEMS</label>
-					<input type = "text" class = "form-control" id = "barcode"  style = "margin:auto;
-					background-color:#fff;border-radius:5px;font-size:20px;font-weight:bold;" autocomplete="off">
-					<div id = "search_result"></div>
-					<div id = "qntyui"></div>						
+					<div class="row">
+						<div class="col-md-6">
+							<DIV class = "form-group">
+							<input type = "text" class = "form-control" id = "barcode"  placeholder = "SEARCH ITEMS" style = "margin:auto;
+							background-color:#fff;border-radius:5px;font-size:20px;font-weight:bold;" autocomplete="off">
+							<div id = "search_result"></div>
+							<div id = "qntyui"></div>
+							</div>
+						</div>
+						<div class="col-md-5">
+							<div class="form-group">
+								<button class = "btn btn-success btn-flat" id = "osearch">SEARCH</button>
+								<button class = "btn btn-primary btn-flat" id = "fin">BROWSE</button>	
+							</div>
+						</div>
+					</div>
+										
 					<?php //pos_category('');?>
 					<script>
+						$("#fin").click(
+							function(e)
+							{
+								e.preventDefault();
+												$('#positemlist').html(loading);
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 poscategoryui:'<?php echo $_SESSION['order'];?>',
+																	 
+																},
+																 function(data) {
+																	$('#positemlist').html(data);
+																	$("#itemtitle").html('BROWSE ITEMS');
+																 });
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 
+																	 oitemtoggleui:1
+																},
+																 function(data) {
+																	$('#item-toggle').html(data);
+																	
+																 });
+																 
+							}
+						);
+						$("#barcode").keyup(
+							function(e)
+							{
+									var key = e.which;
+									
+									if(key == 13)
+									{
+										if($("#barcode").val() != '')
+										{
+											//$("#barcode").val('');
+											$('#positemlist').html(loading);
+													$.post( 
+																 'php/pos.php',
+																 {
+																	 add_item_search:$("#barcode").val()
+																},
+																 function(data) {
+																	$('#positemlist').html(data);
+																	
+																 });
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 
+																	 oitemtoggleui:1
+																},
+																 function(data) {
+																	$('#item-toggle').html(data);
+																	
+																 });
+																 
+										}
+									}
+							}
+						);
 											/*$("#barcode").keyup(
 													function(e)
 													{
@@ -6710,7 +7007,7 @@ if(isset($_REQUEST['torderui']))
 																}
 													});*/
 						
-						$("#barcode").keyup(
+						/*$("#barcode").keyup(
 							function(e)
 							{
 									var key = e.which;
@@ -6754,9 +7051,8 @@ if(isset($_REQUEST['torderui']))
 									
 								
 							}
-						);
-					</script>
-				</div>
+						);*/
+					</script>	
 			</div>	
 			<div class="box" style = "margin-top:-15px;">
 				<div class="box-header with-border">
@@ -6769,11 +7065,72 @@ if(isset($_REQUEST['torderui']))
 				<div class="box-body">
 					<div class="box" style = "margin-top:-12px;height:500px;">
 						<div class="box-body" id = "positemlist">
-							<?php pos_item_list($_SESSION['order'],0);?>
+							<?php pos_item_list($_SESSION['order'],0,1);?>
 						</div>
 					</div>
 				</div>
 			</div>			
+	<?php
+}
+if(isset($_POST['opos_otype']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	$istran = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales_detail where 
+	pos_sales_id = $_SESSION[order] and isdeleted = 0"));
+	
+	if(!empty($istran))
+	{
+		$tcount = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where order_count != 0 and isdeleted = 0 and STR_TO_DATE(created_modified,'%Y-%m-%d') = '$opos_date'"));
+		mysqli_query($con,"update pos_sales set order_count = $tcount+1,order_type_id = $opos_otype where pos_sales_id = $_SESSION[order]");
+		mysqli_query($con,"Update pos_sales_detail set finalize = 1 where pos_sales_id = $_SESSION[order] and isdeleted = 0 and finalize = 0");
+		$ocount = mysqli_fetch_assoc(mysqli_query($con,"Select order_count from pos_sales where pos_sales_id = $_SESSION[order]"));
+		$_SESSION['order'] = '';
+		$_SESSION['oprev'] = '';
+?>
+						<script>
+							$("#maincontent").html('<h2>Order no. <?php echo $ocount['order_count'];?> ha been created. <button class = "btn btn-success" id = "ook">OK</button>');		
+							
+							$("#ook").click(
+								function()
+								{
+																$.post( 
+																		'php/pos.php',
+																		 { torderui:1 },
+																		 function(data) {
+																			$('#maincontent').html(data);
+																		 });
+								}
+							);
+						</script>
+		<?php
+		$_SESSION['order'] = '';
+	}
+	else{
+		?>
+			<script>
+				alert("No Transaction Listed");
+			</script>
+		<?php
+	}
+}
+if(isset($_REQUEST['updateorderui']))
+{
+	mysqli_query($con,"Update pos_sales_detail set finalize = 1 where pos_sales_id = $_SESSION[order] and isdeleted = 0 and finalize = 0");
+	
+	?>
+		<script>
+			alert("Order Successfully Updated");
+			$('#maincontent').html(loading);
+			$.post( 
+																		'php/pos.php',
+																		 { currentorderui:1 },
+																		 function(data) {
+																			$('#maincontent').html(data);
+																		 });
+		</script>
 	<?php
 }
 ?>

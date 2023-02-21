@@ -190,6 +190,7 @@ if(isset($_REQUEST['logout']))
 
 		$_SESSION['c_craft'] = '';
 		$_SESSION['tran'] = '';
+		$_SESSION['order'] = '';
 		?>
 			<script>
 				<?php echo $link;?>
@@ -4732,7 +4733,7 @@ if(isset($_REQUEST['possetui']))
 					  <li><a href="#tab_1" data-toggle="tab" id = "dep">DEPARTMENT</a></li>
 					  <li><a href="#tab_1" data-toggle="tab" id = "var" >VARIATIONS</a></li>
 					  <li><a href="#tab_1" data-toggle="tab" id = "unit">UNITS</a></li>
-						<li><a href="#tab_1" data-toggle="tab" id = "otype" style = "display:none;">ORDER TYPE</a></li>
+						<li><a href="#tab_1" data-toggle="tab" id = "otype">ORDER TYPE</a></li>
 						<li><a href="#tab_1" data-toggle="tab" id = "invoice">INVOICE NUMBER</a></li>
 					</ul>
 					<script>
