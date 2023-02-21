@@ -577,6 +577,7 @@ if(!empty($_REQUEST['add_item_id2']))
 				pos_sales_id = '$add_sales_id2',
 				branch_id = '$row[branch_id]',
 				unit_id = $i[unit_id],
+				variation_id = $pos_var,
 				item_id = '$i[item_id]',
 				item_code = '$i[item_code]',
 				item_description = '$i[item_description]',
@@ -1211,28 +1212,6 @@ if(!empty($_REQUEST['fin']))
 														data-validation-error-msg="Enter Date" value = "<?php echo date('Y-m-d');?>" readonly>
 															
 													
-													</div>
-											</div>
-											
-											<div class="col-md-3">
-													<div class="form-group">
-														<label>Order Type:</label>
-													
-														
-														<Select class = "form-control" name = "pos_otype" data-validation="required"
-															data-validation-error-msg="Select Department">
-																<option value = "" hidden "Selected"> </option>
-															<?php
-															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
-															while($prow = mysqli_fetch_assoc($pmquery))
-															{
-															?>
-																<option value = "<?php echo $prow['order_type_id'];?>"><?php echo $prow['order_type_description'];?></option>
-															
-															<?php
-															}
-															?>
-														</select>
 													</div>
 											</div>
 											<div class="col-md-4" style = "display:none;">
@@ -2952,9 +2931,8 @@ if(!empty($_REQUEST['cancelposset']))
 {
 	pos_settlement_list($_SESSION['tran'],0);
 }
-if(!empty($_POST['pos_otype']))
+if(!empty($_POST['pos_date']))
 {
-	$otype = $_POST['pos_otype'];
 	$rem = $_POST['pos_rem'];
 	$pos_date = $_POST['pos_date'];
 	
@@ -2986,8 +2964,10 @@ if(!empty($_POST['pos_otype']))
 		//if($total['total'] != 0)
 		{
 							
-				$invoice = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where pos_sales_id = $_SESSION[tran]"));				
+				$invoice = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where pos_sales_id = 0
+				and branch_id = $branch"));				
 				
+				mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $id where invoice_number_id = $invoice[invoice_number_id]");
 				
 				$tot = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
 				pos_sales_id = $id and isdeleted = 0"));
@@ -2997,13 +2977,10 @@ if(!empty($_POST['pos_otype']))
 				$card = mysqli_fetch_assoc(mysqli_query($con,"Select card_profile_id from registration where customer_id = $row[customer_id]"));
 				
 				mysqli_query($con,"Update pos_sales set
-				order_type_id = $otype,
 				sales_datetime = NOW(),
 				sales_invoice_number = '$invoice[invoice_number]',
 				total_sales = $total[total],
-				total_quantity = $tot[total],
-				card_id = $c,
-				remarks = '$rem'
+				total_quantity = $tot[total]
 				where pos_sales_id = $id
 				");
 				
@@ -3120,7 +3097,7 @@ if(!empty($_POST['pos_otype']))
 											$.post( 
 													'php/pos.php',
 													{
-														posui:1
+														orderui:1
 														
 													},
 													function(data) {
@@ -5856,7 +5833,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	if(empty($_SESSION['prev']))
 		$_SESSION['prev'] = 0;
 	
-	$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[prev]
+	/*$pcheck = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[prev]
 	and sales_invoice_number = ''"));
 	
 	if($pcheck != 0)
@@ -5867,7 +5844,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and branch_id = $branch
 	and pos_sales_id =0"));
 	
-	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[tran] where invoice_number_id = $irow[invoice_number_id]");
+	mysqli_query($con,"Update lup_invoice_number set pos_sales_id = $_SESSION[tran] where invoice_number_id = $irow[invoice_number_id]");*/
 	
 	$totalq = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
 	pos_sales_id = $_SESSION[tran] and isdeleted = 0"));
@@ -6514,10 +6491,10 @@ if(isset($_REQUEST['orderui']))
 	
 	?>
 	<h2>ORDERS</H2>
-	<div class="box">
+	
 		<div id = "markalert"></div>
 		<div class="box">
-			<div class="box-body" id = "smonitorui">
+			<div class="box-body">
 				<?php orders(0,0);?>	
 			</div>
 		</div>

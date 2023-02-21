@@ -350,7 +350,7 @@ function orders($print,$prep)
 	
 	$query = mysqli_query($con,$string);
 	?>
-	<table class = "table table-bordered table-hover table-xs" id = "banktable">
+	<table class = "table table-bordered table-hover table-xs" id = "ordertable">
 								<thead>
 								<?PHP
 								IF($print == 0)
@@ -360,12 +360,10 @@ function orders($print,$prep)
 								<?php
 								}
 								?>
-									<th>#</th>
-									<th>TABLE NAME</th>
+									
+									<th>ORDER NO</th>
 									<th>TOTAL QUANTITY</th>
 									<th>TOTAL PRICE</th>
-									<th style = "display:none;">>SIZE</th>
-									<th style = "display:none;">>ADD ON</th>
 								</thead>
 			<?php
 			$ctr = 1;
@@ -374,7 +372,8 @@ function orders($print,$prep)
 			while($row = mysqli_fetch_assoc($query))
 			{
 			
-				$pdetail = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as QTY, SUM(grand_total) as price from pos_sales_detail where pos_sales_id = $row[pos_sales_id] and isdeleted = 0"));
+				$pdetail = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as QTY, SUM(grand_total) as price from pos_sales_detail where pos_sales_id = $row[pos_sales_id] and isdeleted = 0
+				and finalize = 1"));
 				if($pdetail['QTY'] > 0)
 				{
 				?>
@@ -409,15 +408,7 @@ function orders($print,$prep)
 												}
 											);
 											
-											$("#prep<?php echo $ctr;?>").click(
-												function(e)
-												{
-													e.preventDefault();
-													
-														
-													
-												}
-											);
+											
 											</script>	
 										<?php
 									}
@@ -431,8 +422,8 @@ function orders($print,$prep)
 								<?php
 								}
 								?>
-					<td><?php echo $ctr;?></td>
-					<td><?php echo $row['fullname'];?></td>
+					
+					<td><?php echo $row['order_count'];?></td>
 					<td><?php echo $pdetail['QTY'];?></td>
 					<td><?php echo $pdetail['price'];?></td
 				</tr>
@@ -452,7 +443,7 @@ function orders($print,$prep)
 				function()
 				{
 						
-					$('#banktable').DataTable({
+					$('#ordertable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,
@@ -5591,6 +5582,7 @@ function pos_item_list($tran,$print,$fromorder)
 									<th>#</th>
 									
 									<th>ITEM DESCRIPTION</th>
+									<th>VARIATION</th>
 									<th>QUANTITY</th>
 									<th>PRICE</th>
 									<?php
@@ -5614,6 +5606,8 @@ function pos_item_list($tran,$print,$fromorder)
 				$tqnty = $tqnty + $row['quantity'];
 				$total = $total + $row['grand_total'];
 				$i = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_item where item_id = $row[item_id]"));
+				$vcount = mysqli_num_rows(mysqli_query($con,"Select * from lup_variations where item_id = $row[item_id]"));
+				$v = mysqli_fetch_assoc(mysqli_query($con,"Select description from lup_variations where item_id = $row[item_id]"));
 				?>
 				<tr>
 					<?php
@@ -5637,6 +5631,12 @@ function pos_item_list($tran,$print,$fromorder)
 					?>
 					<td><?php echo $ctr;?></td>
 					<td><?php echo $row['item_description']?></td>
+					<td><?php
+						if($vcount != 1)
+							echo $v['description'];
+						else
+							echo "-";
+					?></td>
 					<?php
 									if($print == 0 )
 									{
@@ -5927,6 +5927,7 @@ function pos_item_list($tran,$print,$fromorder)
 				<td></td>
 				<td></td>
 				<th>TOTAL:</th>
+				<td></td>
 				<th id = "totqnty"><?php echo number_format($tqnty,2);?></th>
 				<?php
 				if($print == 0)
