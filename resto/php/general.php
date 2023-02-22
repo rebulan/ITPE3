@@ -6083,11 +6083,11 @@ function pos_item_list2($tran,$print)
 	
 }
 
-function pos_items($sales_id,$class,$cat,$dep,$key)
+function pos_items($sales_id,$class,$cat,$dep,$key,$branch)
 {
 	global $con;
 	
-	$string = "Select * from pos_lup_item where isdeleted = 0 and visible = 1";
+	$string = "Select * from pos_lup_item where isdeleted = 0 and visible = 1 and branch_id = $branch";
 	
 	if(!empty($class))
 	{
@@ -6214,11 +6214,11 @@ function pos_items($sales_id,$class,$cat,$dep,$key)
 		</div>
 	<?php
 }
-function pos_category($sales_id,$class)
+function pos_category($sales_id,$class,$branch)
 {
 	
 	global $con;
-	$string = "Select * from pos_lup_classification where isdeleted = 0 and visible = 1";
+	$string = "Select * from pos_lup_classification where isdeleted = 0 and visible = 1 and branch_id = $branch";
 	
 	if(!empty($class))
 	{
@@ -6888,11 +6888,11 @@ function clinelist($print)
 		}
 }
 
-function itemlist($key,$cat,$class,$print)
+function itemlist($key,$cat,$class,$branch,$print)
 {
 	global $con;
 	
-	$string = "Select * from pos_lup_item where isdeleted = 0 and addon_id = 0";
+	$string = "Select * from pos_lup_item where isdeleted = 0 and addon_id = 0 and branch_id = $branch";
 	
 	if($key != '')
 	{
@@ -7506,11 +7506,11 @@ function departmentlist($print)
 		}
 }
 
-function classificationlist($print)
+function classificationlist($branch,$print)
 {
 	global $con;
 	
-	$string = "Select * from pos_lup_classification where isdeleted = 0";
+	$string = "Select * from pos_lup_classification where isdeleted = 0 and branch_id = $branch";
 	
 	$query = mysqli_query($con,$string);
 	
@@ -7520,7 +7520,7 @@ function classificationlist($print)
 									<th>#</th>
 									<th>CLASSIFICATION CODE</th>
 									<th>CLASSIFICATION NAME</th>
-									<th>DEPARTMENT</th>
+									
 									<th>VISIBLE</th>
 									<th></th>
 								</thead>
@@ -7528,13 +7528,12 @@ function classificationlist($print)
 				$ctr = 1;
 				while($row = mysqli_fetch_assoc($query))
 				{
-					$dep = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_department where department_id = $row[department_id]"));
+					
 					?>
 						<tr>
 							<td><?php echo $ctr;?></td>
 							<td><?php echo $row['classification_code'];?></td>
 							<td><?php echo $row['classification_description'];?></td>
-							<td><?php echo $dep['department_description'];?></td>
 							<td><?php
 								if($row['visible'] == 1)
 								{

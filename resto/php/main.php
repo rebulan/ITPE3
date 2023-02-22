@@ -4910,6 +4910,9 @@ if(isset($_REQUEST['possetui']))
 
 if(isset($_REQUEST['classui']))
 {
+		$user = get_user_id($_SESSION['c_craft']);
+		$agent = get_agent($user);
+		$branch = get_branch($user);
 	?>
 		<div class="box" style = "margin-top:10px;">
 			   <div class="box-header with-border">
@@ -5012,7 +5015,7 @@ if(isset($_REQUEST['classui']))
 			  ?>
 				
 				<div id = "classalert"></div>
-				<div id = "classificationlist"><?php classificationlist(0);?></div>				
+				<div id = "classificationlist"><?php classificationlist($branch,0);?></div>				
 			  </div>
 		</div>
 	<?php
@@ -5030,14 +5033,15 @@ if(isset($_POST['class_code']))
 	$check = mysqli_num_rows(mysqli_query($con, "Select * from pos_lup_classification where
 	(classification_description= '$class_name' or classification_code = '$class_code') and isdeleted = 0"));
 	
-	$user = get_user_id($_SESSION['c_craft']);
-	$agent = get_agent($user);
+		$user = get_user_id($_SESSION['c_craft']);
+				$agent = get_agent($user);
+				$branch = get_branch($user);
 	if($check == 0)
 	{
 		$save = mysqli_query($con,"Insert into pos_lup_classification set 
 		classification_code = '$class_code',
 		classification_description = '$class_name',
-		department_id = 0,
+		branch_id = $branch,
 		visible = $class_visible,
 		created_modified = NOW(),
 		isdeleted = 0
@@ -5069,12 +5073,12 @@ if(isset($_POST['class_code']))
 		<?php
 	}
 	
-	classificationlist(0);
+	classificationlist($branch,0);
 }
 if(isset($_REQUEST['classdel']))
 {
 	$id = $_REQUEST['classdel'];
-	
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from  pos_lup_classification where classification_id = $id"));
 	$del = mysqli_query($con,"Update pos_lup_classification set isdeleted = 1 where classification_id = $id");
 	
 	if($del)
@@ -5094,7 +5098,7 @@ if(isset($_REQUEST['classdel']))
 		<?php
 	}
 	
-	classificationlist(0);
+	classificationlist($row['branch_id'],0);
 }
 if(isset($_REQUEST['classedit']))
 {
@@ -5129,30 +5133,7 @@ if(isset($_REQUEST['classedit']))
 											
 											</div>
 										</div>
-										<div class="col-md-4">
-												<div class="form-group">
-													<label>Department:</label>
-												
-													<Select class = "form-control" name = "class_dep_edit" data-validation="required"
-													data-validation-error-msg="Select Department">
-													<?php
-														$crow = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_department where department_id = $row[department_id]"));
-													?>													
-														<option value = "<?php echo $crow['department_id'];?>" hidden "Selected"><?php echo $crow['department_description'];?></option>
-													<?php
-													$pmquery = mysqli_query($con,"Select * from pos_lup_department where isdeleted = 0");
-													while($prow = mysqli_fetch_assoc($pmquery))
-													{
-													?>
-														<option value = "<?php echo $prow['department_id'];?>"><?php echo $prow['department_description'];?></option>
-													
-													<?php
-													}
-													?>
-													</select>
-												
-												</div>
-										</div>
+									
 										<div class="col-md-4" style = "padding-top:25px;">
 											<div class="form-group">
 												<input type="checkbox" id = "class_visible_edit" name = "class_visible_edit" 
@@ -5219,7 +5200,8 @@ if(isset($_POST['class_code_edit']))
 		${$key} = trim(strtoupper($val));
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
-	
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_classification where classification_id = $class_edit_id"));
+
 	$class_visible = 0;
 	if(isset($_POST['class_visible_edit']))
 		$class_visible = 1;
@@ -5233,7 +5215,6 @@ if(isset($_POST['class_code_edit']))
 		$save = mysqli_query($con,"update pos_lup_classification set 
 		classification_code = '$class_code_edit',
 		classification_description = '$class_name_edit',
-		department_id = $class_dep_edit,
 		visible = $class_visible
 		where classification_id = $class_edit_id
 		");
@@ -5264,7 +5245,7 @@ if(isset($_POST['class_code_edit']))
 		<?php
 	}
 	
-	classificationlist(0);
+	classificationlist($row['branch_id'],0);
 }
 if(isset($_REQUEST['catui']))
 {
@@ -6660,7 +6641,7 @@ if(isset($_REQUEST['itemui']))
 																										
 														<option value = "" hidden "Selected"</option>
 													<?php
-													$pmquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0");
+													$pmquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0 and branch_id = $branch");
 													while($prow = mysqli_fetch_assoc($pmquery))
 													{
 													?>
@@ -6790,6 +6771,7 @@ if(isset($_REQUEST['itemui']))
 							<div class="col-md-3">
 								<div class = "form-group">
 									<label>ITEM CODE/DESCRIPTION:</label>
+									<input type="hidden" class = "form-control" id = "cstbranch" name = "cstbranch">
 									<input type="text" class = "form-control" id = "cstfname" name = "cstfname">
 								</div>		
 							</div>
@@ -6816,7 +6798,7 @@ if(isset($_REQUEST['itemui']))
 								<div class = "form-group">
 									<label>CLASSIFICATION:</label>
 									<?PHP
-									$pquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0 order by classification_description");
+									$pquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0 and branch_id = $branch order by classification_description");
 									?>
 									<select name = "cstfclass" id = "cstfclass" class="form-control">
 													<option "Selected" value = "all">ALL</option>
@@ -6960,7 +6942,7 @@ if(isset($_POST['cstfcat']))
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	
-	itemlist($cstfname,$cstfcat,$cstfclass,0);
+	itemlist($cstfname,$cstfcat,$cstfclass,$cstfbranch,0);
 }
 if(isset($_POST['item_name']))
 {
@@ -11162,6 +11144,7 @@ if(!empty($_REQUEST['stockmui']))
 	$level = $_REQUEST['stockmui'];
 	$user = get_user_id($_SESSION['c_craft']);
 	$agent = get_agent($user);
+	$branch = get_branch($user);
 	?>
 		
 		<div class="box box-warning">
@@ -11171,10 +11154,10 @@ if(!empty($_REQUEST['stockmui']))
 						<div class = "row">	
 							<div class="col-md-3">
 								<div class = "form-group">
-									<label>PRODUCT:</label>
+									<label>PRODUCTrr:</label>
 									<input type = "hidden" value = "<?php echo $level;?>" name = "ilevel">
 									<?PHP
-									$pquery = mysqli_query($con,"Select * from pos_lup_item where isdeleted = 0 order by item_description");
+									$pquery = mysqli_query($con,"Select * from pos_lup_item where isdeleted = 0 and branch_id = $branch and addon_id = 0 order by item_description");
 									?>
 									<select name = "iproduct" id = "iproduct" class="form-control" data-validation="required"
 													data-validation-error-msg="Select PRODUCT">
@@ -11265,7 +11248,7 @@ if(!empty($_REQUEST['stockmui']))
 					
 									<label>PRODUCT:</label>
 									<?PHP
-									$pquery = mysqli_query($con,"Select * from pos_lup_item where isdeleted = 0 order by item_description");
+									$pquery = mysqli_query($con,"Select * from pos_lup_item where isdeleted = 0 and branch_id = $branch and addon_id = 0 order by item_description");
 									?>
 									<select name = "ifproduct" id = "ifproduct" class="form-control">
 													<option "Selected">ALL</option>

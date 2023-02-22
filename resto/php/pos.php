@@ -171,12 +171,15 @@ if(!empty($_REQUEST['cclassui']))
 
 if(!empty($_REQUEST['positems']))
 {
-	//echo "AAAA";
-	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','');
+	$user = get_user_id($_SESSION['c_craft']);
+	$branch = get_branch($user);
+	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','',$branch);
 }
 if(!empty($_REQUEST['add_item_search']))
 {
-	pos_items($_SESSION['order'],'','','',$_REQUEST['add_item_search']);
+	$user = get_user_id($_SESSION['c_craft']);
+	$branch = get_branch($user);
+	pos_items($_SESSION['order'],'','','',$_REQUEST['add_item_search'],$branch);
 }
 if(!empty($_REQUEST['itemqnty']))
 {
@@ -6188,7 +6191,10 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 }
 if(!empty($_REQUEST['poscategoryui']))
 {
-	pos_category($_REQUEST['poscategoryui'],'');
+	$user = get_user_id($_SESSION['c_craft']);
+	$branch = get_branch($user);
+	
+	pos_category($_REQUEST['poscategoryui'],'',$branch);
 }
 if(!empty($_REQUEST['itemtoggleui']))
 {
