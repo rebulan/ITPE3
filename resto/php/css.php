@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="bower_components/bootstrap-daterangepicker/daterangepicker.css">
   <!-- bootstrap wysihtml5 - text editor -->
   <link rel="stylesheet" href="plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css">
-	<link rel="stylesheet" href="bower_components/datatables.net-bs/css/sample_datatables.min.css">
+	<link rel="stylesheet" href="bower_components/DataTables/DataTables-1.13.1/css/jquery.dataTables.min.css">
 	<link rel="stylesheet" href="bower_components/select2/dist/css/select2.min.css">
 	
 	<!--<link rel="stylesheet" href="bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css">

@@ -788,11 +788,11 @@ if(isset($_REQUEST['freportui']))
 
 if(isset($_REQUEST['collectionui']))
 {
+
 	$level = $_REQUEST['collectionui'];
 	$user = get_user_id($_SESSION['c_craft']);
 	$agent = get_agent($user);
 	$branch = get_branch($user);
-	
 	?>
 	<h2>COLLECTION REPORT</H2>
 	<div class="box">
@@ -969,13 +969,17 @@ if(isset($_POST['cdto']))
 
 if(isset($_REQUEST['pcdto']))
 {
-		foreach($_REQUEST as $key=>$val) {
+		
+	?>
+	<div id = "printt">
+	<?PHP
+	foreach($_REQUEST as $key=>$val) {
 			${$key} = $val;
 		//echo "The value of ".$key." is ". $val." <br>";
 		}
 		$bheader = "ALL BRANCH";
 		$theader = "ALL COLLECTIONS";
-		if($psbranch != 'all')
+		if($pcbranch != 'all')
 		{
 			$br = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_branch where branch_id = $pcbranch"));
 			$bheader = $br['branch_description']." Branch";
@@ -992,8 +996,7 @@ if(isset($_REQUEST['pcdto']))
 			}
 		}
 	?>
-	<div id = "printt">
-			<p style = "text-align:center;?>"><img src = "../images/logo.png" width = 150></p>
+			<p style = "text-align:center;?>"><img src = "images/logo.png" width = 150></p>
 			<h3 style = "text-align:center"><?php echo get_company();?></h3>
 			<h4 style = "text-align:center">COLLECTION REPORT</h4>
 			<h4 style = "text-align:center"><?php echo $bheader;?></h4>

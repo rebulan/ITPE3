@@ -388,7 +388,7 @@ function orders($print,$prep)
 									{
 										?>
 										<a href = "" id = "open<?php echo $ctr;?>" class = "btn btn-success btn-xs btn-flat">OPEN</a>
-										<a href = "" id = "prep<?php echo $ctr;?>" class = "btn btn-primary btn-xs btn-flat">PREPARATIONS</a>	
+										<a style = "display:none;" href = "" id = "prep<?php echo $ctr;?>" class = "btn btn-primary btn-xs btn-flat">PREPARATIONS</a>	
 										<script>
 											$("#open<?php echo $ctr;?>").click(
 												function(e)
@@ -703,8 +703,10 @@ function variations($product,$dfrom,$dto,$des,$dis)
 function prep($print,$prep)
 {
 	global $con;
-	$string = "Select * from  pos_sales_detail,se_user where pos_sales_detail.isdeleted = 0 and pos_sales_detail.done = $prep
-	and se_user.user_id = pos_sales_detail.created_by and pos_sales_detail.addon_id = 0";
+	$string = "Select * from  pos_sales_detail,pos_sales,se_user where pos_sales_detail.isdeleted = 0 and pos_sales_detail.done = $prep
+	and se_user.user_id = pos_sales_detail.created_by and pos_sales_detail.addon_id = 0 and pos_sales_detail.discount = 0
+	and pos_sales.pos_sales_id = pos_sales_detail.pos_sales_id
+	and pos_sales.order_count != 0";
 	$query = mysqli_query($con,$string);
 	?>
 	<table class = "table table-bordered table-hover table-xs" id = "banktable">
@@ -717,8 +719,8 @@ function prep($print,$prep)
 								<?php
 								}
 								?>
-									<th>#</th>
-									<th>TABLE NAME</th>
+									<th>ORDER COUNT</th>
+								
 									<th>DATE AND TIME</th>
 									<th>QUANTITY</th>
 									<th>PRODUCT</th>
@@ -782,12 +784,11 @@ function prep($print,$prep)
 								<?php
 								}
 								?>
-					<td><?php echo $ctr;?></td>
-					<td><?php echo $row['fullname'];?></td>
+					<td><?php echo $row['order_count'];?></td>
 					<td><?php echo $row['created_modified'];?></td>
 					<td><?php echo $row['quantity'];?></td>
 					<td><?php echo $row['item_description'];?></td>
-					<td style = "display:none;">><?php echo $u['unit_description'];?></td>
+					
 					<td>
 						<?php
 						$add_query = mysqli_query($con,"Select * from pos_sales_detail where addon_id = $row[pos_sales_detail_id]");
@@ -2466,7 +2467,7 @@ function sales_summary($branch,$dfrom,$dto,$print)
 {
 	global $con;
 	
-	$string = "Select SUM(total_sales) as tsales, SUM(total_quantity) as tquan, branch_id from pos_sales where isdeleted = 0 and sales_invoice_number != ''";
+	/*$string = "Select SUM(total_sales) as tsales, SUM(total_quantity) as tquan, branch_id from pos_sales where isdeleted = 0 and sales_invoice_number != ''";
 	$string2= "Select * from pos_sales where isdeleted = 0 and sales_invoice_number != ''";
 	$string3= "Select SUM(pos_sales_detail.item_cost*pos_sales_detail.quantity) as tcost from pos_sales_detail, pos_sales where pos_sales.isdeleted = 0 and pos_sales_detail.isdeleted = 0
 	and pos_sales_detail.pos_sales_id = pos_sales.pos_sales_id and pos_sales.sales_invoice_number != ''";
@@ -2489,7 +2490,15 @@ function sales_summary($branch,$dfrom,$dto,$print)
 	//echo $string2;
 	$query = mysqli_query($con,$string);
 	$count = mysqli_num_rows(mysqli_query($con,$string2));
-	$tcost = mysqli_fetch_assoc(mysqli_query($con,$string3));
+	$tcost = mysqli_fetch_assoc(mysqli_query($con,$string3));*/
+	
+	$string = "Select * from lup_branch where isdeleted = 0";
+	if(!empty($branch) && $branch != 'all')
+	{
+		$string = $string." and branch_id = $branch";
+	}
+	$query = mysqli_query($con,$string);
+	
 	?>
 	<table class = "table table-bordered table-hover table-xs" id = "banktable">
 								<thead>
@@ -2497,23 +2506,37 @@ function sales_summary($branch,$dfrom,$dto,$print)
 									<th>BRANCH</th>
 									<th style = "text-align:right;">TOTAL TRANSACTION</th>
 									<th style = "text-align:right;">TOTAL QUANTITY</th>
-									<th style = "text-align:right;">TOTAL COST</th>
+									
 									<th style = "text-align:right;">TOTAL AMOUNT</th>
 								</thead>
 			<?php
 			$ctr = 1;
 			while($row = mysqli_fetch_assoc($query))
 			{
-				$br = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_branch where branch_id = $branch"));
+				$string = "Select SUM(total_sales) as tsales, SUM(total_quantity) as tquan, branch_id from pos_sales where isdeleted = 0 and sales_invoice_number != '' and branch_id = $row[branch_id]";
+				$string2= "Select * from pos_sales where isdeleted = 0 and sales_invoice_number != '' and branch_id = $row[branch_id]";
+				$string3= "Select SUM(pos_sales_detail.item_cost*pos_sales_detail.quantity) as tcost from pos_sales_detail, pos_sales where pos_sales.isdeleted = 0 and pos_sales_detail.isdeleted = 0
+				and pos_sales_detail.pos_sales_id = pos_sales.pos_sales_id and pos_sales.sales_invoice_number != ''";
 				
+				if($dfrom != "" && $dto != "")
+				{
+					$string = $string." and (STR_TO_DATE(sales_datetime,'%Y-%m-%d') >= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+					STR_TO_DATE(sales_datetime,'%Y-%m-%d') <= STR_TO_DATE('$dto','%Y-%m-%d'))";
+					$string2 = $string2." and (STR_TO_DATE(sales_datetime,'%Y-%m-%d') >= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+						STR_TO_DATE(sales_datetime,'%Y-%m-%d') <= STR_TO_DATE('$dto','%Y-%m-%d'))";
+					$string3 = $string3." and (STR_TO_DATE(pos_sales.sales_datetime,'%Y-%m-%d') >= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+						STR_TO_DATE(pos_sales.sales_datetime,'%Y-%m-%d') <= STR_TO_DATE('$dto','%Y-%m-%d'))";
+				}
+				$rw = mysqli_fetch_assoc(mysqli_query($con,$string));
+				$count = mysqli_num_rows(mysqli_query($con,$string2));
 				?>
 				<tr>
 					<td><?php echo $ctr;?></td>
-					<td><?php echo $br['branch_description'];?></td>
+					<td><?php echo $row['branch_description'];?></td>
 					<td style = "text-align:right;"><?php echo number_format($count,2);?></td>
-					<td style = "text-align:right;"><?php echo number_format($row['tquan'],2);?></td>
-					<td style = "text-align:right;"><?php echo number_format($tcost['tcost'],2);?></td>
-					<td style = "text-align:right;"><?php echo number_format($row['tsales'],2);?></td>
+					<td style = "text-align:right;"><?php echo number_format($rw['tquan'],2);?></td>
+					
+					<td style = "text-align:right;"><?php echo number_format($rw['tsales'],2);?></td>
 				</tr>
 				<?php
 				$ctr++;
@@ -2546,12 +2569,12 @@ function sales_summary($branch,$dfrom,$dto,$print)
 		}
 }
 
-function sales_detail($branch,$dfrom,$dto,$cat,$class,$print)
+function sales_detail($branch,$dfrom,$dto,$class,$print)
 {
 	global $con;
 	
-	$string = "Select DISTINCT(pos_sales_detail.item_id) as item_id, pos_sales_detail.item_description,pos_lup_item
-	pos_sales.branch_id from pos_sales_detail,pos_sales where 
+	$string = "Select DISTINCT(pos_sales_detail.item_id) as item_id, pos_sales_detail.item_description,pos_lup_item.*,
+	pos_sales.branch_id from pos_sales_detail,pos_sales,pos_lup_item where 
 	pos_sales.sales_invoice_number != '' and pos_sales_detail.isdeleted = 0
 	and pos_sales_detail.pos_sales_id = pos_sales.pos_sales_id
 	and pos_sales.isdeleted = 0
@@ -6117,6 +6140,9 @@ function pos_items($sales_id,$class,$cat,$dep,$key,$branch)
 					
 	$query = mysqli_query($con,$string);
 	$bg = array('bg-orange','bg-green');
+	$count = mysqli_num_rows($query);
+	if($count != 0)
+	{
 	?>
 		 <div class="row">
 			<?php
@@ -6162,7 +6188,7 @@ function pos_items($sales_id,$class,$cat,$dep,$key,$branch)
 						</span>
 						<div class="info-box-content ">
 						  <span class="info-box-text"><?php echo $row['item_description'];?></span>
-						  <span class="info-box-number"><?php echo $pr;?></span>
+						  <span class="info-box-number" style = "display:none"><?php echo $pr;?></span>
 						</div>
 						<!-- /.info-box-content -->
 					  </div>
@@ -6213,6 +6239,11 @@ function pos_items($sales_id,$class,$cat,$dep,$key,$branch)
 			
 		</div>
 	<?php
+	}
+	else
+	{
+		echo "<h3>No Search Result.</h3>";
+	}
 }
 function pos_category($sales_id,$class,$branch)
 {
@@ -6226,7 +6257,11 @@ function pos_category($sales_id,$class,$branch)
 	}
 	
 	$query = mysqli_query($con,$string);
+	
+	$count = mysqli_num_rows($query);
 	$bg = array('bg-yellow','bg-blue');
+	if($count != 0)
+	{
 	?>
 	
 							<div class="row">
@@ -6287,6 +6322,11 @@ function pos_category($sales_id,$class,$branch)
 							 </div>
 							 
 	<?php
+	}
+	else
+	{
+		echo "<h3> No Classification Listed";
+	}
 	
 }
 
@@ -6910,7 +6950,7 @@ function itemlist($key,$cat,$class,$branch,$print)
 	$query = mysqli_query($con,$string);
 	
 	?>
-		<table class = "table table-bordered table-hover table-sm" id = "banktable">
+		<table class = "table table-bordered table-hover table-sm" id = "itemtable">
 								<thead>
 								<?php
 								if($print == 0)
@@ -7125,7 +7165,7 @@ function itemlist($key,$cat,$class,$branch,$print)
 				function()
 				{
 						
-					$('#banktable').DataTable({
+					$('#itemtable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,

@@ -270,7 +270,7 @@ function company($ispages)
 	<?php
 	//$row = mysql_fetch_assoc(mysql_query("Select * from companytb"));
 	
-	$des = "<img src = '".$pages."images/logo.png' style = 'width:80px;margin-top:-5px;'>";
+	$des = "<img src = '".$pages."images/logo.png' style = 'width:180px;margin-top:-13px;'>";
 	return $des;
 }
 

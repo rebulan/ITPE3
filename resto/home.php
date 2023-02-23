@@ -16,7 +16,7 @@ homecheck();
   <?php include('php/css.php');?>
   <?php include('php/js.php');?>
 </head>
-<body class="hold-transition skin-blue sidebar-mini">
+<body class="hold-transition skin-green-light sidebar-mini">
 <div class="wrapper">
 
   <header class="main-header" style = "background-color:#001ef2;">

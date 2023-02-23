@@ -11154,7 +11154,7 @@ if(!empty($_REQUEST['stockmui']))
 						<div class = "row">	
 							<div class="col-md-3">
 								<div class = "form-group">
-									<label>PRODUCTrr:</label>
+									<label>PRODUCT:</label>
 									<input type = "hidden" value = "<?php echo $level;?>" name = "ilevel">
 									<?PHP
 									$pquery = mysqli_query($con,"Select * from pos_lup_item where isdeleted = 0 and branch_id = $branch and addon_id = 0 order by item_description");

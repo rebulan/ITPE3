@@ -179,8 +179,15 @@ if(!empty($_REQUEST['add_item_search']))
 {
 	$user = get_user_id($_SESSION['c_craft']);
 	$branch = get_branch($user);
-	pos_items($_SESSION['order'],'','','',$_REQUEST['add_item_search'],$branch);
+	pos_items($_SESSION['tran'],'','','',$_REQUEST['add_item_search'],$branch);
 }
+if(!empty($_REQUEST['oadd_item_search']))
+{
+	$user = get_user_id($_SESSION['c_craft']);
+	$branch = get_branch($user);
+	pos_items($_SESSION['order'],'','','',$_REQUEST['oadd_item_search'],$branch);
+}
+
 if(!empty($_REQUEST['itemqnty']))
 {
 	$id = $_REQUEST['itemqnty'];
@@ -326,7 +333,7 @@ if(!empty($_POST['add_item_id']))
 									$("#barcode").val('');
 									$("#barcode").blur();
 									$("#modal2").modal("show");
-									$("#modalbody2").css("width","30%");
+									
 									$('#modalui2').html(loading);	
 															$.post( 
 																		'php/pos.php',
@@ -4040,10 +4047,10 @@ if(isset($_REQUEST['sreportui']))
 			<div class = "box-body">
 				<div class="nav-tabs-custom">
 					<ul class="nav nav-tabs">
-					  <li class="active"><a href="#tab_1" id = "sale" data-toggle="tab" style = "display:none;">SALES TRANSACTION</a></li>
+					  <li><a href="#tab_1" id = "sale" data-toggle="tab" style = "display:none;">SALES TRANSACTION</a></li>
 					  <li><a href="#tab_1" ID = "cline" data-toggle="tab" style = "display:none;">CREDIT LINE TRANSACTION</a></li>
 					  <li><a href="#tab_1" ID = "rebate" data-toggle="tab" style = "display:none;">REBATE TRANSACTION</a></li>
-					  <li><a href="#tab_1" ID = "collection" data-toggle="tab">COLLECTION REPORT</a></li>
+					  <li class="active"><a href="#tab_1" ID = "collection" data-toggle="tab">COLLECTION REPORT</a></li>
 					  <li><a href="#tab_1" ID = "salesd" data-toggle="tab">SALES DETAILED REPORT</a></li>
 					  <li><a href="#tab_1" ID = "salessm" data-toggle="tab">SALES SUMMARY REPORT</a></li>
 					</ul>
@@ -4099,9 +4106,9 @@ if(isset($_REQUEST['sreportui']))
 						$('#tab_1').html(loading);	
 						
 																$.post( 
-																		'php/pos.php',
+																		'php/finance.php',
 																		{
-																			saletui:1
+																			collectionui:1
 																		},
 																		function(data) {
 																			$('#tab_1').html(data);	
@@ -4885,7 +4892,33 @@ if(isset($_REQUEST['salesdui']))
 											<?php
 										}
 										?>
-										
+										<div class="col-md-4">
+												<div class="form-group">
+													<label>Classification:</label>
+												
+													<Select class = "form-control" name = "sdclass" id = "sdclass" data-validation="required"
+													data-validation-error-msg="Select Classification">
+																										
+														<option value = "all" "Selected">ALL</option>
+													<?php
+													if($level != 1)
+														$pmquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0 and branch_id = $branch");
+													else
+														$pmquery = mysqli_query($con,"Select * from pos_lup_classification where isdeleted = 0");
+													
+													
+													while($prow = mysqli_fetch_assoc($pmquery))
+													{
+													?>
+														<option value = "<?php echo $prow['classification_id'];?>"><?php echo $prow['classification_description'];?></option>
+													
+													<?php
+													}
+													?>
+													</select>
+												
+												</div>
+										</div>
 										<div class="col-md-3" style = "padding-top:25px;">
 												<div class = "form-group">
 													<button class = "btn btn-success btn-flat" id = "filter">FILTER</button>
@@ -4915,7 +4948,8 @@ if(isset($_REQUEST['salesdui']))
 																					psdbranch:$("#sdbranch").val(),
 																					psddto:$("#sddto").val(),
 																					psddfrom:$("#sddfrom").val(),
-																					psdtranfrom:$("#sdtranfrom").val()
+																					psdtranfrom:$("#sdtranfrom").val(),
+																					psdclass:$("#sdclass").val()
 																					
 																				},
 																				function(data) {
@@ -4980,7 +5014,9 @@ if(isset($_POST['sddto']))
 	?>
 	<div class="box box">
 		<div class="box-body">
-			<?php sales_detail($sdbranch,$sddfrom,$sddto,0);?>
+			<?php //sales_detail($sdbranch,$sddfrom,$sddto,0);
+					sales_detail($sdbranch,$sddfrom,$sddto,$sdclass,0)
+			?>
 		</div>
 	</div>
 	<?php
@@ -5001,14 +5037,14 @@ if(isset($_REQUEST['psddto']))
 		}
 	?>
 	<div id = "printt">
-			<p style = "text-align:center;?>"><img src = "../images/logo.png" width = 150></p>
+			<p style = "text-align:center;?>"><img src = "images/logo.png" width = 150></p>
 			<h3 style = "text-align:center"><?php echo get_company();?></h3>
 			<h4 style = "text-align:center">SALES DETAILED REPORT</h4>
 			<h4 style = "text-align:center"><?php echo $bheader;?></h4>
 			<h4 style = "text-align:center"><?php echo $psddfrom." to ".$psddto;?></h4>
 			
 			<?php
-				sales_detail($psdbranch,$psddfrom,$psddto,1);
+				sales_detail($psdbranch,$psddfrom,$psddto,$psdclass,1);
 				
 				$user = get_user_id($_SESSION['c_craft']);
 				$agent = get_agent($user);
@@ -5216,7 +5252,7 @@ if(isset($_REQUEST['psmdto']))
 		}
 	?>
 	<div id = "printt">
-			<p style = "text-align:center;?>"><img src = "../images/logo.png" width = 150></p>
+			<p style = "text-align:center;?>"><img src = "images/logo.png" width = 150></p>
 			<h3 style = "text-align:center"><?php echo get_company();?></h3>
 			<h4 style = "text-align:center">SALES SUMMARY REPORT</h4>
 			<h4 style = "text-align:center"><?php echo $bheader;?></h4>
@@ -5721,12 +5757,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	
 	if(isset($_SESSION['prevtran']))
 		$_SESSION['tran'] = $_SESSION['prevtran'];
-	
-	?>
-		<script>
-			alert("<?php echo $_SESSION['tran'];?>");
-		</script>
-	<?php
+
 	if(isset($_REQUEST['takeorderui']))
 	{
 		$user = $_REQUEST['takeorderui'];
@@ -5760,9 +5791,11 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	$cfullname = 'cus';
 	if(!empty($_REQUEST['pos_orderui']))
 	{
-		$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales, se_user where pos_sales.pos_sales_id = $_SESSION[tran]
-		and pos_sales.created_by_fullname = se_user.user_id and se_user.istable = 0"));
-			if($check > 0)
+		$_SESSION['tran'] = $_REQUEST['pos_orderui']; 
+		$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[tran]
+		and order_count != 0"));
+		
+			if($check == 0)
 			{
 				$_SESSION['prevtran'] = $_SESSION['tran'];
 			}
@@ -5771,7 +5804,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 				$_SESSION['prevtran'] = "";
 			}
 			
-		$_SESSION['tran'] = $_REQUEST['pos_orderui']; 
+		
 	}
 	if(!empty($_REQUEST['posorderui']))
 	{
@@ -5962,6 +5995,29 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 							<button class = "btn btn-danger btn-flat btn-sm" id = "cancel">RESET</button>
 						<?php
 					}
+					else
+					{
+						?>
+							<button class = "btn btn-danger btn-flat btn-sm" id = "backo">ORDER LIST</button>
+							<SCRIPT>
+								$("#backo").click(
+									function()
+									{
+										$('#maincontent').html(loading);
+										$.post( 
+																 'php/pos.php',
+																 {
+																	 orderui:1
+																},
+																 function(data) {
+																	$('#maincontent').html(data);
+																
+																 });
+									}
+								);
+							</script>
+						<?php
+					}
 					?>
 						
 				</div>
@@ -6042,7 +6098,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 								<div class = "box-body" style = "text-align:center;">
 									<?php
 										$ct = mysqli_fetch_assoc(mysqli_query($con,"Select fullname from se_user where user_id = $sales_id[created_by_fullname]"));
-										echo "<h2>".$ct['fullname']."</h2>";
+										echo "<h2>ORDER NO.".$sales_id['order_count']."</h2>";
 									?>
 								</div>
 							</div>
@@ -6130,7 +6186,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 																 'php/pos.php',
 																 {
 																	 
-																	 oitemtoggleui:1
+																	 itemtoggleui:1
 																},
 																 function(data) {
 																	$('#item-toggle').html(data);
@@ -6398,7 +6454,7 @@ if(isset($_REQUEST['prepui']))
 										<div class="col-md-3">
 												<div class = "form-group">
 													<button class = "btn btn-primary btn-flat" id = "refresh">REFRESH</button>
-													<button class = "btn btn-success btn-flat" id = "done">SHOW DONE</button>
+													<button class = "btn btn-success btn-flat" id = "done">SHOW SERVED ORDERS</button>
 													<button class = "btn btn-warning btn-flat" id = "print">PRINT RESULT</button>
 													<input type = "hidden" id = "doneval" value = "0">
 												</div>	
@@ -6562,8 +6618,7 @@ if(isset($_REQUEST['orderui']))
 	$agent = get_agent($user);
 	
 	?>
-	<h2>ORDERS</H2>
-	
+	<h2>PAYMENTS</H2>
 		<div id = "markalert"></div>
 		<div class="box">
 			<div class="box-body">
@@ -6610,7 +6665,6 @@ if(isset($_REQUEST['takeorderui']))
 
 if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 {
-	echo $_SESSION['oprev'];
 	if(isset($_REQUEST['torderui']))
 	{
 		if(!empty($_SESSION['oprev']))
@@ -7027,7 +7081,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 													$.post( 
 																 'php/pos.php',
 																 {
-																	 add_item_search:$("#barcode").val()
+																	 oadd_item_search:$("#barcode").val()
 																},
 																 function(data) {
 																	$('#positemlist').html(data);

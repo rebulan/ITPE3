@@ -24,15 +24,12 @@ indexcheck();
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
 </head>
 <body class="hold-transition login-page skin-green">
-	<div class="box" style = "width:50%;margin:auto;margin-top:10px;background-color: rgba(255, 255, 255, 0.5);">
-    
-        <div class="box-body">
-        <img src = 'images/logo.png' width = "130" style = "float:left;margin-top:10px;"><img src = 'images/logo2.png' width = "130" style = "margin-top: 20px;float:right;">
-         
-        </div>
-     </div>
+	
 <div class="login-box">
   <!-- /.login-logo -->
+	<div class="login-logo">
+		<img src="images/logo.png" style="width:300px;">
+	</div>
   <div class="login-box-body">
     <p class="login-box-msg">Sign in to start your session</p>
 

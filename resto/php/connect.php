@@ -1,7 +1,7 @@
 <?php
 define('SERVERNAME', 'localhost');
 define('USERNAME','root');
-define('PASSWORD','');
+define('PASSWORD','paradigm101');
 define('DATABASE','resto');
 $con=mysqli_connect(SERVERNAME,USERNAME,PASSWORD,DATABASE);
 if(!$con){
