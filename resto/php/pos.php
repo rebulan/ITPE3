@@ -614,7 +614,7 @@ if(!empty($_REQUEST['add_item_id2']))
 						
 						mysqli_query($con,"insert into pos_sales_detail set
 						sales_invoice_number = '',
-						pos_sales_id = '$_SESSION[tran]',
+						pos_sales_id = '$add_sales_id2',
 						branch_id = '$row[branch_id]',
 						unit_id = $i[unit_id],
 						addon_id = $posd[pos_sales_detail_id],
@@ -774,8 +774,20 @@ if(!empty($_REQUEST['positemdel']))
 	$from = $_REQUEST['positemdelfrom'];
 	
 	$row = mysqli_fetch_assoc(mysqli_query($con,"Select pos_sales_id from pos_sales_detail where pos_sales_detail_id = $id"));
-	$del = mysqli_query($con,"Update pos_sales_detail set isdeleted = 1 where pos_sales_detail_id = $id");
-	
+	$del = "";
+	if($row['done'] != 1)
+	{
+		$del = mysqli_query($con,"Update pos_sales_detail set isdeleted = 1 where pos_sales_detail_id = $id");
+	}
+	else
+	{
+		?>
+			<script>
+				alert("Cannot be deleted, Order already served");
+			</script>
+		<?php
+	}
+		
 	if(!$del)
 	{
 		?>
@@ -3163,7 +3175,7 @@ if(isset($_REQUEST['printinvoice']))
 	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $printinvoice"));
 	?>
 		<div id = "printt">
-			<p style = "text-align:center;?>"><img src = "../images/logo.png" width = 150></p>
+			<p style = "text-align:center;?>"><img src = "images/logo.png" width = 150></p>
 			<h3 style = "text-align:center"><?php echo get_company();?></h3>
 			<h4 style = "text-align:center">SALES INVOICE</h4>
 			
@@ -3182,7 +3194,7 @@ if(isset($_REQUEST['printinvoice']))
 					<h3 class="box-title">ORDER DETAILS</h3>
 				</div>
 				<div class = "box-body">
-					<?php pos_item_list($row['pos_sales_id'],1);?>
+					<?php pos_item_list($row['pos_sales_id'],1,0);?>
 				</div>
 			</div>
 			<div class="box" style = "margin-top:10px;">
@@ -3754,7 +3766,7 @@ if(isset($_REQUEST['invoicedetails']))
 					<h3 class="box-title">ORDER DETAILS</h3>
 				</div>
 				<div class = "box-body">
-					<?php pos_item_list($row['pos_sales_id'],1);?>
+					<?php pos_item_list($row['pos_sales_id'],1,0);?>
 				</div>
 			</div>
 			<div class="box" style = "margin-top:10px;">
@@ -5710,6 +5722,11 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	if(isset($_SESSION['prevtran']))
 		$_SESSION['tran'] = $_SESSION['prevtran'];
 	
+	?>
+		<script>
+			alert("<?php echo $_SESSION['tran'];?>");
+		</script>
+	<?php
 	if(isset($_REQUEST['takeorderui']))
 	{
 		$user = $_REQUEST['takeorderui'];
@@ -5937,7 +5954,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
         <div class = "row" style = "margin-top:-15px;">
 			<div class="col-md-4" style = "text-align:left;padding-top:20px;">
 				<div class = "form-group">
-					<button class = "btn btn-primary btn-flat btn-sm" id = "fin">BROWSE</button>	
+					
 					<?php
 					if(empty($_REQUEST['pos_orderui']))
 					{
@@ -5959,33 +5976,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
     </div>
 		<script>
 				$("#barcode").focus();
-				$("#fin").click(
-							function()
-							{
-												$('#positemlist').html(loading);
-												$.post( 
-																 'php/pos.php',
-																 {
-																	 poscategoryui:'<?php echo $_SESSION['tran'];?>'
-																	 
-																},
-																 function(data) {
-																	$('#positemlist').html(data);
-																	$("#itemtitle").html('BROWSE ITEMS');
-																 });
-												$.post( 
-																 'php/pos.php',
-																 {
-																	 
-																	 itemtoggleui:1
-																},
-																 function(data) {
-																	$('#item-toggle').html(data);
-																	
-																 });
-																 
-							}
-						);
+
 						
 			$("#cancel").click(
 				function()
@@ -6068,13 +6059,88 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 			<div class="box" style = "margin-top:-5px;">
 			
 				<div class="box-body" id = "itemlistui">
-					<label>SEARCH ITEMS</label>
-					<input type = "text" class = "form-control" id = "barcode"  style = "margin:auto;
-					background-color:#fff;border-radius:5px;font-size:20px;font-weight:bold;" autocomplete="off">
-					<div id = "search_result"></div>
-					<div id = "qntyui"></div>						
+					<div class="row">
+						<div class="col-md-6">
+							<DIV class = "form-group">
+							<input type = "text" class = "form-control" id = "barcode"  placeholder = "SEARCH ITEMS" style = "margin:auto;
+							background-color:#fff;border-radius:5px;font-size:20px;font-weight:bold;" autocomplete="off">
+							<div id = "search_result"></div>
+							<div id = "qntyui"></div>
+							</div>
+						</div>
+						<div class="col-md-5">
+							<div class="form-group">
+								<button class = "btn btn-success btn-flat" id = "osearch">SEARCH</button>
+								<button class = "btn btn-primary btn-flat" id = "fin">BROWSE</button>	
+							</div>
+						</div>
+					</div>
+											
 					<?php //pos_category('');?>
 					<script>
+						$("#fin").click(
+							function(e)
+							{
+								e.preventDefault();
+												$('#positemlist').html(loading);
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 poscategoryui:'<?php echo $_SESSION['tran'];?>',
+																	 
+																},
+																 function(data) {
+																	$('#positemlist').html(data);
+																	$("#itemtitle").html('BROWSE ITEMS');
+																 });
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 
+																	 itemtoggleui:1
+																},
+																 function(data) {
+																	$('#item-toggle').html(data);
+																	
+																 });
+																 
+							}
+						);
+						$("#barcode").keyup(
+							function(e)
+							{
+									var key = e.which;
+									
+									if(key == 13)
+									{
+										if($("#barcode").val() != '')
+										{
+											//$("#barcode").val('');
+											$('#positemlist').html(loading);
+													$.post( 
+																 'php/pos.php',
+																 {
+																	 add_item_search:$("#barcode").val()
+																},
+																 function(data) {
+																	$('#positemlist').html(data);
+																	
+																 });
+												$.post( 
+																 'php/pos.php',
+																 {
+																	 
+																	 oitemtoggleui:1
+																},
+																 function(data) {
+																	$('#item-toggle').html(data);
+																	
+																 });
+																 
+										}
+									}
+							}
+						);
 											/*$("#barcode").keyup(
 													function(e)
 													{
@@ -6093,7 +6159,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 																{
 																	$('#search_result').html("");
 																}
-													});*/
+													});
 						
 						$("#barcode").keyup(
 							function(e)
@@ -6139,7 +6205,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 									
 								
 							}
-						);
+						);*/
 						$('#settleui').html(loading);
 						
 							$.post( 
@@ -6283,7 +6349,7 @@ if(!empty($_REQUEST['oretitemlist']))
 
 if(!empty($_REQUEST['retitemlist']))
 {
-	pos_item_list($_SESSION['tran'],0);
+	pos_item_list($_SESSION['tran'],0,0);
 }
 
 if(!empty($_REQUEST['cleartran']))
@@ -6544,12 +6610,24 @@ if(isset($_REQUEST['takeorderui']))
 
 if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 {
+	echo $_SESSION['oprev'];
 	if(isset($_REQUEST['torderui']))
 	{
 		if(!empty($_SESSION['oprev']))
-			$_SESSION['order'] = $_SESSION['oprev'];
+		{
+			$check = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $_SESSION[oprev] and order_count != 0 and isdeleted = 0"));
+			if($check == 0)
+			{
+				$_SESSION['order'] = $_SESSION['oprev'];
+			}
+			else{
+				$_SESSION['order'] = '';
+			}
+		}
 		else
-			$_SESSION['order'] = "";
+		{
+			$_SESSION['order'] = '';
+		}
 	}
 	
 	if(isset($_REQUEST['currentorderui']))
@@ -6623,7 +6701,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 		
 		$_SESSION['order'] = '';
 		$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where result = '$result'"));
-		//$_SESSION['oprev'] = $sales_id['pos_sales_id'];
+		$_SESSION['oprev'] = $sales_id['pos_sales_id'];
 		$_SESSION['order'] = $sales_id['pos_sales_id'];
 	}
 	//if($cid == 0)

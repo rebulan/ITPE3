@@ -5617,7 +5617,7 @@ function pos_item_list($tran,$print,$fromorder)
 									?>
 											<td>
 											<?php
-											if($row['finalize'] != 1 && $fromorder == 1)
+											if($row['done'] != 1)
 											{
 											?>
 												<button class = "btn btn-danger btn-flat btn-xs" id = "del<?php echo $ctr;?>">x</button>
