@@ -188,9 +188,7 @@ if(isset($_REQUEST['logout']))
 	else
 		$link = 'window.location.href = "main.php"';
 
-		$_SESSION['c_craft'] = '';
-		$_SESSION['tran'] = '';
-		$_SESSION['order'] = '';
+		session_destroy();
 		?>
 			<script>
 				<?php echo $link;?>

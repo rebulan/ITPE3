@@ -28,6 +28,146 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function orderstatus($print,$status)
+{
+	global $con;
+	$string = "Select * from  pos_sales where order_count != 0 ";
+	
+	if($status != 0)
+		$string = $string." and order_status_id = $status ";
+	
+	$string = $string." order by order_count";
+	$query = mysqli_query($con,$string);
+	?>
+	<table class = "table table-bordered table-hover table-xs" id = "ordertable">
+								<thead>
+								<?PHP
+								IF($print == 0)
+								{
+								?>
+									<th></th>
+								<?php
+								}
+								?>
+									
+									<th>ORDER NO</th>
+									<th>SALES INVOICE NUMBER</th>
+								</thead>
+			<?php
+			$ctr = 1;
+			$tq = 0;
+			$total = 0;
+			while($row = mysqli_fetch_assoc($query))
+			{
+			
+				?>
+				<tr>
+					<?PHP
+								IF($print == 0)
+								{
+								?>
+									<td id = "controlui<?php echo $ctr;?>">
+										<?php
+										if($row['order_status_id'] == 1)
+										{
+											?>
+												<a href = "" id = "ready<?php echo $ctr;?>" class = "btn btn-success btn-flat ">MARK AS READY</a>
+												<script>
+													$("#ready<?php echo $ctr;?>").click(
+														function(e)
+														{
+															e.preventDefault();
+															var r = confirm("Confirm Action");
+															
+															if(r == true)
+															{
+																$.post( 
+																	'php/pos.php',
+																	{
+																		mready:<?php echo $row['pos_sales_id'];?>,
+																		mreadyctr:'<?php echo $ctr;?>'
+																	},
+																	function(data) {
+																		$('#click').html(data);		
+																	});
+															}
+														}
+													);
+												</script>
+											<?php
+										}
+										else if($row['order_status_id'] == 2)
+										{
+												?>
+												<a href = "" id = "served<?php echo $ctr;?>" class = "btn btn-primary btn-flat ">MARK AS SERVED</a>
+												<script>
+													$("#served<?php echo $ctr;?>").click(
+														function(e)
+														{
+															e.preventDefault();
+															var r = confirm("Confirm Action");
+															
+															if(r == true)
+															{
+																$.post( 
+																	'php/pos.php',
+																	{
+																		mserved:<?php echo $row['pos_sales_id'];?>,
+																		mservedctr:'<?php echo $ctr;?>'
+																	},
+																	function(data) {
+																		$('#click').html(data);		
+																	});
+															}
+														}
+													);
+												</script>
+												
+											<?php
+										}
+										else{
+											echo "SERVED";
+										}
+										?>
+									</td>
+								<?php
+								}
+								?>
+					
+					<td><?php echo $row['order_count'];?></td>
+					<td><?php echo $row['sales_invoice_number'];?></td>
+				</tr>
+				<?php
+				$ctr++;
+				
+			}
+			
+			?>
+	</table>
+	<?php
+		if($print == 0)
+		{
+		?>
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					$('#ordertable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : true
+					});												
+				}
+			);
+		</script>
+	<?php
+		}
+}
+
 function takeorders($print,$prep)
 {
 	global $con;
@@ -705,11 +845,11 @@ function prep($print,$prep)
 	global $con;
 	$string = "Select * from  pos_sales_detail,pos_sales,se_user where pos_sales_detail.isdeleted = 0 and pos_sales_detail.done = $prep
 	and se_user.user_id = pos_sales_detail.created_by and pos_sales_detail.addon_id = 0 and pos_sales_detail.discount = 0
-	and pos_sales.pos_sales_id = pos_sales_detail.pos_sales_id
-	and pos_sales.order_count != 0";
+	and pos_sales.pos_sales_id = pos_sales_detail.pos_sales_id and pos_sales.sales_invoice_number != ''
+	and pos_sales.order_count != 0 order by pos_sales.order_count";
 	$query = mysqli_query($con,$string);
 	?>
-	<table class = "table table-bordered table-hover table-xs" id = "banktable">
+	<table class = "table table-bordered table-hover table-xs">
 								<thead>
 								<?PHP
 								IF($print == 0)
@@ -719,8 +859,8 @@ function prep($print,$prep)
 								<?php
 								}
 								?>
-									<th>ORDER COUNT</th>
-								
+									<th>ORDER NO.</th>
+									<th>ORDER TYPE</th>
 									<th>DATE AND TIME</th>
 									<th>QUANTITY</th>
 									<th>PRODUCT</th>
@@ -734,7 +874,7 @@ function prep($print,$prep)
 			{
 				//$u = mysqli_fetch_assoc(mysqli_query($con,"Select lup_size_unit.*,lup_size.unit_price from lup_size, lup_size_unit where lup_size.size_id = $row[unit_id]
 				//and lup_size.unit_id = lup_size_unit.unit_id"));
-				
+				$otype = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_order_type where order_type_id = $row[order_type_id]"));
 				?>
 				<tr>
 					<?PHP
@@ -784,10 +924,11 @@ function prep($print,$prep)
 								<?php
 								}
 								?>
-					<td><?php echo $row['order_count'];?></td>
-					<td><?php echo $row['created_modified'];?></td>
-					<td><?php echo $row['quantity'];?></td>
-					<td><?php echo $row['item_description'];?></td>
+					<tH><?php echo $row['order_count'];?></th>
+					<th><?php echo $otype['order_type_description'];?></th>
+					<tH><?php echo $row['sales_datetime'];?></th>
+					<th><?php echo $row['quantity'];?></th>
+					<th><?php echo $row['item_description'];?></th>
 					
 					<td>
 						<?php
@@ -6301,7 +6442,8 @@ function pos_category($sales_id,$class,$branch)
 																 'php/pos.php',
 																 {
 																	 positems:item,
-																	 positems_sales_id:'<?php echo $sales_id;?>'
+																	 positems_sales_id:'<?php echo $sales_id;?>',
+																	 positemsbranch:'<?php echo $branch;?>'
 																},
 																 function(data) {
 																	$('#positemlist').html(data);

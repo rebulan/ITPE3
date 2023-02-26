@@ -173,7 +173,7 @@ if(!empty($_REQUEST['positems']))
 {
 	$user = get_user_id($_SESSION['c_craft']);
 	$branch = get_branch($user);
-	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','',$branch);
+	pos_items($_REQUEST['positems_sales_id'],'',$_REQUEST['positems'],'','',$_REQUEST['positemsbranch']);
 }
 if(!empty($_REQUEST['add_item_search']))
 {
@@ -780,7 +780,7 @@ if(!empty($_REQUEST['positemdel']))
 	$id = $_REQUEST['positemdel'];
 	$from = $_REQUEST['positemdelfrom'];
 	
-	$row = mysqli_fetch_assoc(mysqli_query($con,"Select pos_sales_id from pos_sales_detail where pos_sales_detail_id = $id"));
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales_detail where pos_sales_detail_id = $id"));
 	$del = "";
 	if($row['done'] != 1)
 	{
@@ -2993,18 +2993,35 @@ if(!empty($_POST['pos_date']))
 				
 				$tot = mysqli_fetch_assoc(mysqli_query($con,"Select SUM(quantity) as total from pos_sales_detail where 
 				pos_sales_id = $id and isdeleted = 0"));
+				$pscount = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where pos_sales_id = $id and order_count != 0"));
+				if($pscount == 0)
+				{
+					$tcount = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where order_count != 0 and isdeleted = 0 and STR_TO_DATE(created_modified,'%Y-%m-%d') = '$pos_date'"));
+					$card = mysqli_fetch_assoc(mysqli_query($con,"Select card_profile_id from registration where customer_id = $row[customer_id]"));
 				
+					mysqli_query($con,"Update pos_sales set
+					sales_datetime = NOW(),
+					sales_invoice_number = '$invoice[invoice_number]',
+					total_sales = $total[total],
+					total_quantity = $tot[total],
+					order_count = $tcount+1
+					where pos_sales_id = $id
+					");
 				
+				}
+				else{
+					//$tcount = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where order_count != 0 and isdeleted = 0 and STR_TO_DATE(created_modified,'%Y-%m-%d') = '$pos_date'"));
+					$card = mysqli_fetch_assoc(mysqli_query($con,"Select card_profile_id from registration where customer_id = $row[customer_id]"));
 				
-				$card = mysqli_fetch_assoc(mysqli_query($con,"Select card_profile_id from registration where customer_id = $row[customer_id]"));
+					mysqli_query($con,"Update pos_sales set
+					sales_datetime = NOW(),
+					sales_invoice_number = '$invoice[invoice_number]',
+					total_sales = $total[total],
+					total_quantity = $tot[total]
+					where pos_sales_id = $id
+					");
+				}
 				
-				mysqli_query($con,"Update pos_sales set
-				sales_datetime = NOW(),
-				sales_invoice_number = '$invoice[invoice_number]',
-				total_sales = $total[total],
-				total_quantity = $tot[total]
-				where pos_sales_id = $id
-				");
 				
 				mysqli_query($con,"Update pos_sales_detail set
 				sales_invoice_number = '$invoice[invoice_number]'
@@ -3119,7 +3136,7 @@ if(!empty($_POST['pos_date']))
 											$.post( 
 													'php/pos.php',
 													{
-														orderui:1
+														posui:1
 														
 													},
 													function(data) {
@@ -5705,6 +5722,7 @@ if(isset($_REQUEST['printinvoice2']))
 }
 if(isset($_REQUEST['posui']))
 {
+	$level = $_REQUEST['posui'];
 	$user = get_user_id($_SESSION['c_craft']);
 	$agent = get_agent($user);
 	$branch = get_branch($user);
@@ -5712,17 +5730,88 @@ if(isset($_REQUEST['posui']))
 	if($inv != 0)
 	{
 	?>
+		<h2>POS</h2>
+		<div class="box">
+			<div class="box-body">
 				<form id = "cmsearchform" method = "POST">
-					
-								<input type="hidden" id="posui2" name="posui2" value = "cus">
-								<input type="hidden" id="clickval">
-								<div id = "search_result"></div>												
-				
+					<div class = "row">
+						<input type="hidden" id="posui2" name="posui2" value = "cus">
+						<input type="hidden" id="clickval">
+						<div id = "search_result"></div>
+						<?php
+						if($level == 1)
+						{
+							?>
+								<div class="col-md-4">
+												<?php
+												$cquery = mysqli_query($con,"Select * from lup_branch where isdeleted = 0");
+												?>
+													<div class="form-group">
+														  <label for="age">BRANCH:</label>
+															
+															<select  name = "posbranch" id = "posbranch" class="form-control" data-validation="required"
+																	data-validation-error-msg="Select Branch">
+																	<option "Selected" hidden value = "">SELECT BRANCH</option>
+																
+																<?php
+																while($crow = mysqli_fetch_assoc($cquery))
+																{
+																?>												
+																	<option value = "<?php echo $crow['branch_id'];?>"><?php echo $crow['branch_description'];?></option>
+																	
+																<?php
+																}
+																?>
+															</select>
+															
+													</div>
+						</div>
+							<?php
+						}
+						else{
+							?>
+								<input type="hidden" id="posbranch" name="posui2" value = "<?php echo $branch;?>">
+							<?php
+						}
+						?>
+						
+						<div class="col-md-2">
+													<div class="form-group">
+														<label for="age">ORDER TYPE:</label>
+														<Select class = "form-control" name = "postype" id = "postype" data-validation="required"
+															data-validation-error-msg="Select Order Type">
+																<option value = "" hidden "Selected">SELECT ORDER TYPE</option>
+															<?php
+															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
+															while($prow = mysqli_fetch_assoc($pmquery))
+															{
+															?>
+																<option value = "<?php echo $prow['order_type_id'];?>"><?php echo $prow['order_type_description'];?></option>
+															
+															<?php
+															}
+															?>
+														</select>
+													</div>
+													
+						</div>
+						<div class="col-md-5" style = "padding-top:25px;">
+							<div class="form-group">
+								<button class = "btn btn-success btn-flat" id = "procceed">PROCEED</button>		
+							</div>
+						</div>
+										
+					</div>
 				</form>
 				<script>
-											
-																	
-																		 var formData = $('#cmsearchform').serializeArray();
+								$.validate({
+														form:'#cmsearchform',
+														validateOnBlur : false,
+														errorMessagePosition : 'top',
+														modules : 'security',
+														onSuccess : function($form) {
+														
+															 var formData = $('#cmsearchform').serializeArray();
 																			
 																			 //var formData = new FormData($('#regform')[0]);
 																		$("#maincontent").html(loading);
@@ -5738,8 +5827,17 @@ if(isset($_REQUEST['posui']))
 																						}
 																					});
 
+														  return false; // Will stop the submission of the form
+														},
+													});			
+																	
+																		
+
 																	 
 				</script>
+			</DIV>
+		</div>
+				
 
 	<?php
 	}
@@ -5752,10 +5850,15 @@ if(isset($_REQUEST['posui']))
 }
 if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 {
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
 	if(isset($_REQUEST['posui2']))
 		$id = $_REQUEST['posui2'];
 	
-	if(isset($_SESSION['prevtran']))
+	if(!empty($_SESSION['prevtran']))
 		$_SESSION['tran'] = $_SESSION['prevtran'];
 
 	if(isset($_REQUEST['takeorderui']))
@@ -5817,7 +5920,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	{
 		$trn = $_SESSION['tran'];
 	}
-	$branch = get_branch($user);
+	
 	$agent = get_agent($user);
 	
 	?>
@@ -5846,6 +5949,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 	<?php
 	if(empty($_SESSION['tran']))
 	{
+		$branch = $posbranch;
 		$validCharacters = "ABCDEFGHIJKLMNOPQRSTUXYVWZabcdefghijklmnopqrstuvwxyz0123456789";
 			$validCharNumber = strlen($validCharacters);
 			 
@@ -5861,6 +5965,7 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 		branch_id = '$branch',
 		sales_invoice_number = '',
 		customer_id = $cid,
+		order_type_id = $postype,
 		customer_fullname = '$cfullname',
 		result = '$result',
 		created_by_fullname = '$user',
@@ -5873,6 +5978,18 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 		$_SESSION['prev'] = $sales_id['pos_sales_id'];
 		$_SESSION['tran'] = $sales_id['pos_sales_id'];
 	}
+	else
+	{
+		if(!empty($_REQUEST['takeorderui']))
+		{
+		mysqli_query($con,"update pos_sales set
+		branch_id = '$branch',
+		order_type_id = $postype
+		where pos_sales_id = $_SESSION[tran]
+		");
+		}
+	}
+	
 	if($cid == 0)
 	{
 		mysqli_query($con,"Update pos_sales set customer_id = 0, customer_fullname = '$cfullname' where pos_sales_id = $_SESSION[tran]");
@@ -6314,9 +6431,9 @@ if(isset($_REQUEST['posui2'])||isset($_REQUEST['pos_orderui']))
 if(!empty($_REQUEST['poscategoryui']))
 {
 	$user = get_user_id($_SESSION['c_craft']);
-	$branch = get_branch($user);
-	
-	pos_category($_REQUEST['poscategoryui'],'',$branch);
+	//$branch = get_branch($user);
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select branch_id from pos_sales where pos_sales_id = $_REQUEST[poscategoryui]"));
+	pos_category($_REQUEST['poscategoryui'],'',$row['branch_id']);
 }
 if(!empty($_REQUEST['itemtoggleui']))
 {
@@ -6451,7 +6568,7 @@ if(isset($_REQUEST['prepui']))
 		<div class="box-body">
 				<form id = "pfilterform" method = "POST">
 									<div class = "row">	
-										<div class="col-md-3">
+										<div class="col-md-8">
 												<div class = "form-group">
 													<button class = "btn btn-primary btn-flat" id = "refresh">REFRESH</button>
 													<button class = "btn btn-success btn-flat" id = "done">SHOW SERVED ORDERS</button>
@@ -6466,6 +6583,9 @@ if(isset($_REQUEST['prepui']))
 												e.preventDefault();
 												
 												$("#doneval").val("1");
+												
+												
+												
 															$('#smonitorui').html(loading);	
 																		$.post( 
 																				'php/pos.php',
@@ -6483,17 +6603,17 @@ if(isset($_REQUEST['prepui']))
 											function(e)
 											{
 												e.preventDefault();
-													$("#doneval").val("0");
-															$('#smonitorui').html(loading);	
-																		$.post( 
-																				'php/pos.php',
-																				{
-																					refreshprep:1
-																				},
-																				function(data) {
-																					$('#smonitorui').html(data);	
-																					
-																				});
+												$("#doneval").val("0");
+															 $.post( 
+																 'php/pos.php',
+																 {
+																	
+																	trefreshprep:1
+																},
+																 function(data) {
+																	$('#click').html(data);
+																	
+																 });
 											}
 										);
 										
@@ -6521,7 +6641,26 @@ if(isset($_REQUEST['prepui']))
 											}
 										);
 										
-										
+										setInterval(function()
+											{
+												var d = $("#doneval").val();
+												
+												if(d == 0)
+												{
+													 $.post( 
+													 'php/pos.php',
+													 {
+														
+														trefreshprep:1
+													},
+													 function(data) {
+														$('#click').html(data);
+														
+													 });
+												}
+
+							
+											}, 1000)
 									
 									</script>
 									
@@ -6563,8 +6702,31 @@ if(isset($_REQUEST['doneprep']))
 	
 	prep(0,0);
 }
-if(isset($_REQUEST['refreshprep']))
+if(!empty($_REQUEST['trefreshprep']))
 {	
+	$rcount = mysqli_num_rows(mysqli_query($con,"Select * from pos_sales where sales_invoice_number != '' and isdeleted = 0 and refresh = 0"));
+	if($rcount != 0)
+	{
+		
+		?>
+			<script>
+											$.post( 
+													 'php/pos.php',
+													 {
+														
+														srefreshprep:1
+													},
+													 function(data) {
+														$('#smonitorui').html(data);
+													
+													 });
+			</script>
+		<?php
+	}
+}
+if(!empty($_REQUEST['srefreshprep']))
+{	
+	mysqli_query($con,"Update pos_sales set refresh = 1 where refresh = 0 and isdeleted = 0");
 	prep(0,0);
 }
 if(isset($_REQUEST['showdone']))
@@ -6650,8 +6812,7 @@ if(isset($_REQUEST['takeorderui']))
 												$.post( 
 																'php/pos.php',
 																{
-																	torderui:1
-																	
+																	oposui:'<?php echo $level;?>'
 																},
 																function(data) {
 																	$('#maincontent').html(data);
@@ -6665,6 +6826,11 @@ if(isset($_REQUEST['takeorderui']))
 
 if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 {
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
 	if(isset($_REQUEST['torderui']))
 	{
 		if(!empty($_SESSION['oprev']))
@@ -6702,7 +6868,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 		$trn = $_SESSION['order'];
 	}
 	$user = get_user_id($_SESSION['c_craft']);
-	$branch = get_branch($user);
+	
 	$agent = get_agent($user);
 	
 	?>
@@ -6731,6 +6897,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 	<?php
 	if(empty($_SESSION['order']))
 	{
+		$branch = $oposbranch;
 		$validCharacters = "ABCDEFGHIJKLMNOPQRSTUXYVWZabcdefghijklmnopqrstuvwxyz0123456789";
 			$validCharNumber = strlen($validCharacters);
 			 
@@ -6746,6 +6913,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 		branch_id = '$branch',
 		sales_invoice_number = '',
 		customer_id = $cid,
+		order_type_id = $opostype,
 		customer_fullname = '',
 		result = '$result',
 		created_by_fullname = '$user',
@@ -6757,6 +6925,16 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 		$sales_id = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_sales where result = '$result'"));
 		$_SESSION['oprev'] = $sales_id['pos_sales_id'];
 		$_SESSION['order'] = $sales_id['pos_sales_id'];
+	}
+	else{
+		if(empty($_REQUEST['currentorderui']))
+		{
+			mysqli_query($con,"Update pos_sales set
+				branch_id = $oposbranch,
+				order_type_id = $opostype
+				where pos_sales_id = $_SESSION[order]
+			");
+		}
 	}
 	//if($cid == 0)
 	//{
@@ -6793,24 +6971,23 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 	<div class="callout callout-warning" style = "margin-top:-10px;">
         <div class = "row">
 			<form id = "orderform">
-											<div class="col-md-3" style = "display:none;">
-													<div class="form-group">
-														
+										
 														<input type = "hidden" name = "opos_date" value = "<?php echo date('Y-m-d');?>">
+														<input type = "hidden" name = "opos_level" value = "<?php echo $torderui;?>">
 															
 													
-													</div>
-											</div>
+										
 											
 											<div class="col-md-2">
 												<?php
 													if(!isset($_REQUEST['currentorderui']))
 													{
+														$stype = mysqli_fetch_assoc(mysqli_query($con,"Select * from pos_lup_order_type where order_type_id = $opostype"));
 												?>
 													<div class="form-group">
 														<Select class = "form-control" name = "opos_otype" id = "opos_otype" data-validation="required"
 															data-validation-error-msg="Select Order Type">
-																<option value = "" hidden "Selected">SELECT ORDER TYPE</option>
+																<option value = "<?php echo $stype['order_type_id'];?>" hidden "Selected"><?php echo $stype['order_type_description'];?></option>
 															<?php
 															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
 															while($prow = mysqli_fetch_assoc($pmquery))
@@ -6911,7 +7088,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 														$.post( 
 																 'php/pos.php',
 																 {
-																	 torderui:1
+																	 oposui:1
 																},
 																 function(data) {
 																	$('#maincontent').html(data);
@@ -7004,7 +7181,7 @@ if(isset($_REQUEST['torderui']) || isset($_REQUEST['currentorderui']) )
 														$.post( 
 																 'php/pos.php',
 																 {
-																	 torderui:1
+																	 oposui:1
 																},
 																 function(data) {
 																	$('#maincontent').html(data);
@@ -7206,14 +7383,14 @@ if(isset($_POST['opos_otype']))
 		$_SESSION['oprev'] = '';
 ?>
 						<script>
-							$("#maincontent").html('<h2>Order no. <?php echo $ocount['order_count'];?> ha been created. <button class = "btn btn-success" id = "ook">OK</button>');		
+							$("#maincontent").html('<h2>Order no. <?php echo $ocount['order_count'];?> has been created. <button class = "btn btn-success" id = "ook">OK</button>');		
 							
 							$("#ook").click(
 								function()
 								{
 																$.post( 
 																		'php/pos.php',
-																		 { torderui:1 },
+																		 { oposui:'<?php echo $opos_level;?>' },
 																		 function(data) {
 																			$('#maincontent').html(data);
 																		 });
@@ -7248,4 +7425,235 @@ if(isset($_REQUEST['updateorderui']))
 		</script>
 	<?php
 }
+if(isset($_REQUEST['oposui']))
+{
+	$level = $_REQUEST['oposui'];
+	$user = get_user_id($_SESSION['c_craft']);
+	$agent = get_agent($user);
+	$branch = get_branch($user);
+	$inv = mysqli_num_rows(mysqli_query($con,"Select * from lup_invoice_number where isdeleted = 0 and pos_sales_id = 0"));
+	?>
+		<h2>NEW ORDER</h2>
+		<div class="box">
+			<div class="box-body">
+				<form id = "cmsearchform" method = "POST">
+					<div class = "row">
+						<input type="hidden" id="torderui" name="torderui" value = "<?php echo $level;?>">
+						<input type="hidden" id="clickval">
+						<div id = "search_result"></div>
+						<?php
+						if($level == 1)
+						{
+							?>
+								<div class="col-md-4">
+												<?php
+												$cquery = mysqli_query($con,"Select * from lup_branch where isdeleted = 0");
+												?>
+													<div class="form-group">
+														  <label for="age">BRANCH:</label>
+															
+															<select  name = "oposbranch" id = "oposbranch" class="form-control" data-validation="required"
+																	data-validation-error-msg="Select Branch">
+																	<option "Selected" hidden value = "">SELECT BRANCH</option>
+																
+																<?php
+																while($crow = mysqli_fetch_assoc($cquery))
+																{
+																?>												
+																	<option value = "<?php echo $crow['branch_id'];?>"><?php echo $crow['branch_description'];?></option>
+																	
+																<?php
+																}
+																?>
+															</select>
+															
+													</div>
+						</div>
+							<?php
+						}
+						else{
+							?>
+								<input type="hidden" id="posbranch" name="posui2" value = "<?php echo $branch;?>">
+							<?php
+						}
+						?>
+						
+						<div class="col-md-2">
+													<div class="form-group">
+														<label for="age">ORDER TYPE:</label>
+														<Select class = "form-control" name = "opostype" id = "opostype" data-validation="required"
+															data-validation-error-msg="Select Order Type">
+																<option value = "" hidden "Selected">SELECT ORDER TYPE</option>
+															<?php
+															$pmquery = mysqli_query($con,"Select * from pos_lup_order_type where isdeleted = 0");
+															while($prow = mysqli_fetch_assoc($pmquery))
+															{
+															?>
+																<option value = "<?php echo $prow['order_type_id'];?>"><?php echo $prow['order_type_description'];?></option>
+															
+															<?php
+															}
+															?>
+														</select>
+													</div>
+													
+						</div>
+						<div class="col-md-5" style = "padding-top:25px;">
+							<div class="form-group">
+								<button class = "btn btn-success btn-flat" id = "procceed">PROCEED</button>		
+							</div>
+						</div>
+										
+					</div>
+				</form>
+				<script>
+								$.validate({
+														form:'#cmsearchform',
+														validateOnBlur : false,
+														errorMessagePosition : 'top',
+														modules : 'security',
+														onSuccess : function($form) {
+														
+															 var formData = $('#cmsearchform').serializeArray();
+																			
+																			 //var formData = new FormData($('#regform')[0]);
+																		$("#maincontent").html(loading);
+																					$.ajax({
+																						url :  'php/pos.php',
+																						type : 'post',
+																						datatype : 'json',
+																						data : formData,
+										
+																						success : function(data) {
+																							$("#maincontent").html(data);
+																							
+																						}
+																					});
+
+														  return false; // Will stop the submission of the form
+														},
+													});			
+																	
+																		
+
+																	 
+				</script>
+			</DIV>
+		</div>
+				
+
+	<?php
+}
+if(isset($_REQUEST['orderstatusui']))
+{
+	$level = $_REQUEST['orderstatusui'];
+	$user = get_user_id($_SESSION['c_craft']);
+	$agent = get_agent($user);
+	
+	?>
+	<h2>ORDER STATUS</H2>
+		<div id = "markalert"></div>
+		<form id = "statusform">
+			<div class = "row">
+				<div class="col-md-3">
+										<div class="form-group">
+													<label>ORDER STATUS:</label>
+													<Select class = "form-control" name = "fstatus" data-validation="required"
+													data-validation-error-msg="Select ORDER STATUS">
+													
+													<option value = "" hidden "Selected"></option>
+													<?php
+													$pmquery = mysqli_query($con,"Select * from pos_lup_order_status where isdeleted = 0");
+													while($prow = mysqli_fetch_assoc($pmquery))
+													{
+													?>
+														<option value = "<?php echo $prow['order_status_id'];?>"><?php echo $prow['order_status_description'];?></option>
+													
+													<?php
+													}
+													?>
+													</select>
+												
+												</div>
+				</div>
+				<div class="col-md-5" style = "padding-top:25px;">
+										  <div class="form-group">
+											<button class = "btn btn-success btn-flat" id = "searchproceed">FILTER</button>
+										
+										  </div>
+				</div>
+			</div>
+		</form>
+			<SCRIPT>
+				$.validate({
+														form:'#statusform',
+														validateOnBlur : false,
+														errorMessagePosition : 'top',
+														modules : 'security',
+														onSuccess : function($form) {
+														
+															 var formData = $('#statusform').serializeArray();
+																 //var formData = new FormData($('#regform')[0]);
+																 
+																		$.ajax({
+																			url :  'php/pos.php',
+																			type : 'post',
+																			datatype : 'json',
+																			data : formData,
+							
+																			success : function(data) {
+																				$("#statusui").html(data);
+																				
+																			}
+																		});
+
+														  return false; // Will stop the submission of the form
+														},
+													});
+			</script>
+		<div class="box">
+			<div class="box-body" id = "statusui">
+				<?php orderstatus(0,1);?>	
+			</div>
+		</div>
+	<?php
+}
+if(isset($_POST['mready']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	mysqli_query($con,"Update pos_sales set order_status_id = 2,refresh = 0 where pos_sales_id = $mready");
+	mysqli_query($con,"Update pos_sales_detail set done = 1 where pos_sales_id = $mready");
+	?>
+		<script>
+			$("#controlui<?php echo $mreadyctr;?>").html("READY TO SERVED");
+		</script>
+	<?php
+}
+if(isset($_POST['fstatus']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	orderstatus(0,$fstatus);
+}
+if(isset($_POST['mserved']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	mysqli_query($con,"Update pos_sales set order_status_id = 3,refresh = 0 where pos_sales_id = $mserved");
+	?>
+		<script>
+			$("#controlui<?php echo $mservedctr;?>").html("ALREADY SERVED");
+		</script>
+	<?php
+}
+
 ?>
