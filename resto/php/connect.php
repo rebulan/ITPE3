@@ -1,8 +1,8 @@
 <?php
 define('SERVERNAME', 'localhost');
 define('USERNAME','root');
-define('PASSWORD','');
-define('DATABASE','resto');
+define('PASSWORD','paradigm101');
+define('DATABASE','payong');
 $con=mysqli_connect(SERVERNAME,USERNAME,PASSWORD,DATABASE);
 if(!$con){
 	die('ERROR : ' . mysqli_connect_error($con));
