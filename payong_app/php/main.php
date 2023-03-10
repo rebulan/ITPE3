@@ -2063,14 +2063,17 @@ if(isset($_REQUEST['dweatherui']))
 	
 	?>
 	<section class="content-header">
-		<h1><i class="fa fa-location"></i> DAILY WEATHER</H1>
+		<h1><i class="fa fa-location"></i> 10-DAYS WEATHER FORECAST</H1>
 	</section>
 	<section class = "content">
 		<div class="box">
 			<div class="box-body">
 				<div class="row">
 					<div class="col-lg-2 col-xs-6">
-						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus"></i> NEW FORECAST </button>
+						<button class = "btn btn-warning btn-flat btn-block" id = "upload"><i class="fa fa-upload"></i> UPLOAD DATA FILE </button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus"></i> NEW DAILY WEATHER </button>
 					</div>
 					<div class="col-lg-2 col-xs-6">
 						<button class = "btn btn-primary btn-flat btn-block" id = "browse"><i class="fa fa-search"></i> BROWSE</button>
@@ -2094,6 +2097,21 @@ if(isset($_REQUEST['dweatherui']))
 						});
 				}
 			);
+			$("#upload").click(
+				function()
+				{
+					$('#contentui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								newupload:1
+							},
+							function(data) {
+								$('#contentui').html(data);		
+						});
+				}
+			);
+			
 			$("#browse").click(
 				function()
 				{
@@ -2125,104 +2143,195 @@ if(!empty($_REQUEST['newdailyweather']))
 		${$key} = trim(strtoupper($val));
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
-	
+	//save_daily('../images/day1.dbf');
 	$level = $_REQUEST['newdailyweather'];
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
 	?>
+		<h2>Add New Daily Weather</h2>
 		<div class="box">
 			<div class="box-body">
-				<form id = "newweatherform">
-					<div class="row">
-						<div class="col-md-4">					  
-							 <div class="form-group">
-								<label for="lname">FORECAST DATE:</label>
-								<input type="date" id = "wdate" name = "wdate" class="form-control" placeholder="DATE">
-							  </div>			 
-						</div>
-						<div class="col-md-3">
-								 <div class="form-group">
-										<label for="lname">LOCATION:</label>
-									<?PHP
-									$pquery = mysqli_query($con,"Select CONCAT(lup_locations.location_description,',',lup_provinces.description) as loc, lup_locations.location_id from lup_locations, lup_provinces where lup_locations.isdeleted = 0
-									and lup_locations.province_id = lup_provinces.province_id");
-									?>
-									<select name = "wlocation" id = "wlocation" class="form-control">
-													<option value = 'all' "Selected">ALL</option>
-												<?php
-													while($prow = mysqli_fetch_assoc($pquery))
-													{
-												?>
-													<option value = "<?php echo $prow['location_id'];?>"><?php echo $prow['loc'];?></option>
-												<?php
-													}
-												?>
-									</select>
-									<span class="glyphicon glyphicon-pin form-control-feedback"></span>
-								</div>		
-						</div>
-						<script>
-								$("#wlocation").select2();
-						</script>
-						<div class="col-md-3">	
-							 <div class="form-group">
-								<label for="lname">RAIN FALL:</label>
-								<input type="number" name="wrainfall" class="form-control" data-validation="required" data-validation-error-msg="Enter RAIN FALL">				 
+				<div id = "alert"></div>
+						<form id = "newweatherform">
+							<div class="row">
+								<div class="col-md-4">					  
+									 <div class="form-group">
+										<label for="lname">FORECAST DATE:</label>
+										<input type="date" id = "wdate" name = "wdate" class="form-control" placeholder="DATE"  data-validation="required" data-validation-error-msg="Enter Date">
+									  </div>			 
+								</div>
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>LOCATION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"Select CONCAT(lup_locations.location_description,',',lup_provinces.description) as loc, lup_locations.location_id from lup_locations, lup_provinces where lup_locations.isdeleted = 0
+											and lup_locations.province_id = lup_provinces.province_id");
+											?>
+											<select name = "wlocation" id = "wlocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '' hidden "Selected">Select Location</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['location_id'];?>"><?php echo $prow['loc'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											<script>
+												$("#wlocation").select2();
+											</script>
+										</div>		
+								</div>
+								
+								<div class="col-md-3" style = "display:none;">	
+									 <div class="form-group">
+										<label for="lname">RAIN FALL:</label>
+										<input type="hidden" name="wrainfall" value = "0">				 
+									</div>
+								</div>
+								<div class="col-md-3">	
+									<div class="form-group">
+									<label for="lname">RAIN FALL PERCENTAGE</label>
+									<input type="number" name="wrainfallpercent" class="form-control" data-validation="required" data-validation-error-msg="Enter RAIN FALL PERCENTAGE">
+									</div>
+								</div>
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>RAIN DESCRIPTION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from lup_rainfall_des where isdeleted = 0");
+											?>
+											<select name = "wraindes" id = "wraindes" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '' hidden "Selected">Select RAIN DESCRIPTION</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											<script>
+												$("#wraindes").select2();
+											</script>
+										</div>		
+								</div>
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>CLOUD COVER:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from lup_weather_system where isdeleted = 0");
+											?>
+											<select name = "wcloud" id = "wcloud" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '' hidden "Selected">Select Cloud Cover Condition</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											<script>
+												$("#wcloud").select2();
+											</script>
+										</div>		
+								</div>
+								<div class="col-md-3">
+									<div class="form-group">
+										<label for="lname">WIND SPEED:</label>
+										<input type="number" name="wwind" class="form-control" data-validation="required" data-validation-error-msg="Enter LOW TEMPERATURE">
+									</div>			 
+								</div>
+								
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>WIND DIRECTION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from lup_wind_direction where isdeleted = 0");
+											?>
+											<select name = "wwinddirect" id = "wwinddirect " class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '' hidden "Selected">Select WIND DIRECTION</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											<script>
+												$("#wwinddirect").select2();
+											</script>
+										</div>		
+								</div>
+								<div class="col-md-3">
+									<div class="form-group">
+										<label for="lname">HUMIDITY:</label>
+										<input type="number" name="whumid" class="form-control" data-validation="required" data-validation-error-msg="Enter LOW TEMPERATURE">
+									</div>			 
+								</div>
+								<div class="col-md-3">
+									<div class="form-group">
+										<label for="lname">LOW TEMPERATURE:</label>
+										<input type="number" name="wlowtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter LOW TEMPERATURE">
+									</div>			 
+								</div>
+								<div class="col-md-3">					  
+									<div class="form-group">
+										<label for="lname">HIGH TEMPERATURE:</label>
+										<input type="number" name="whightemp" class="form-control" data-validation="required" data-validation-error-msg="Enter HIGH TEMPERATURE">
+									</div>
+								</div>
+								<div class="col-md-3">					  
+									<div class="form-group">
+										<label for="lname">MEAN TEMPERATURE:</label>
+										<input type="number" name="wmeantemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MEAN TEMPERATURE">
+									</div>
+								</div>
+								
+								<div class="col-md-3" style = "padding-top:25px;">
+									<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> SAVE</button>
+								</div>
 							</div>
-						</div>
-						<div class="col-md-3">	
-							<div class="form-group">
-							<label for="lname">RAIN FALL PERCENTAGE</label>
-							<input type="number" name="wrainfallpercent" class="form-control" data-validation="required" data-validation-error-msg="Enter RAIN FALL PERCENTAGE">
-							</div>
-						</div>
-						<div class="col-md-3">
-							<div class="form-group">
-								<label for="lname">LOW TEMPERATURE:</label>
-								<input type="number" name="wlowtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter LOW TEMPERATURE">
-							</div>			 
-						</div>
-						<div class="col-md-3">					  
-							<div class="form-group">
-								<label for="lname">HIGH TEMPERATURE:</label>
-								<input type="number" name="whightemp" class="form-control" data-validation="required" data-validation-error-msg="Enter HIGH TEMPERATURE">
-							</div>
-						</div>
-						<div class="col-md-3" style = "padding-top:25px;">
-							<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> SAVE</button>
-						</div>
-					</div>
-		
-				</form>
+				
+						</form>
+							<script>
+								$("#wsave").click(
+									function()
+									{
+										$.validate({
+										form:'#newweatherform',
+										validateOnBlur : false,
+										errorMessagePosition : 'top',
+										modules : 'security',
+										onSuccess : function($form) {
+										var formData = $('#newweatherform').serializeArray();									 
+											$.ajax({
+											url :  'php/main.php',
+											type : 'post',
+											datatype : 'json',
+											data : formData,		
+											success : function(data) {
+												$("#click").html(data);														
+											}
+											});
+											return false; // Will stop the submission of the form
+											},
+										});
+									}
+								);											
+							</script>
+				  
+				
 			</div>		
-			<div id = "alert"></div>
+			
 		</div>
-		<script>
-		$("#wsave").click(
-			function()
-			{
-				$.validate({
-				form:'#newweatherform',
-				validateOnBlur : false,
-				errorMessagePosition : 'top',
-				modules : 'security',
-				onSuccess : function($form) {
-				var formData = $('#newweatherform').serializeArray();									 
-					$.ajax({
-					url :  'php/main.php',
-					type : 'post',
-					datatype : 'json',
-					data : formData,		
-					success : function(data) {
-						$("#click").html(data);														
-					}
-					});
-					return false; // Will stop the submission of the form
-					},
-				});
-			}
-		);											
-		</script>
+		
 	<?php
 }
 if(isset($_REQUEST['browsedwether']))
@@ -2238,14 +2347,14 @@ if(isset($_REQUEST['browsedwether']))
 					<div class = "row">	
 							<div class="col-md-4">					  
 								<div class="form-group">
-									<label>FORECAST DATE FROM:</label>
-									<input type="date" id = "fwdatefrom" name = "fwdatefrom" class="form-control" placeholder="DATE">
+									<label>WEATHER DATE FROM:</label>
+									<input type="date" id = "fwdatefrom" name = "fwdatefrom" class="form-control" placeholder="DATE" value = "<?PHP ECHO date("Y-m-d");?>">
 								</div>			 
 							</div>
 							<div class="col-md-4">					  
 								<div class="form-group">
-									<label>FORECAST DATE FROM:</label>
-									<input type="date" id = "fwdateto" name = "fwdateto" class="form-control" placeholder="DATE">
+									<label>WEATHER DATE FROM:</label>
+									<input type="date" id = "fwdateto" name = "fwdateto" class="form-control" placeholder="DATE" value = "<?PHP ECHO date("Y-m-d");?>">
 								</div>			 
 							</div>
 							
@@ -2284,7 +2393,7 @@ if(isset($_REQUEST['browsedwether']))
 			</div>		
 			
 		</div>
-		<div id = "dailywlist"></div>
+		<div id = "dailywlist" style = "overflow:auto;"> </div>
 		<script>
 		$("#dbrowse").click(
 			function()
@@ -2328,11 +2437,14 @@ if(isset($_POST['wdate']))
 	temp_from <= $wlowtemp and temp_to >=$wlowtemp and isdeleted = 0"));
 	$htemp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where 
 	temp_from <= $whightemp and temp_to >=$whightemp and isdeleted = 0"));
+	$mtemp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where 
+	temp_from <= $wmeantemp and temp_to >=$wmeantemp and isdeleted = 0"));
+
 	
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
 	
-	$save = insert('forecast_daily_details',['location_id'=>$wlocation,'forecast_date'=>$wdate,'daily_forecast_rainfall'=>$wrainfall,'daily_forecast_rainfall_id'=>$rainf['rainfall_legend_id'],'daily_forecast_rainfall_percentage'=>$wrainfallpercent,'daily_forecast_rain_percent_id'=>$rainp['rain_percentage_legend_id'],'daily_forecast_low_temp'=>$wlowtemp,'daily_forecast_lowtemp_hex'=>$ltemp['color'],'daily_forecast_high_temp'=>$whightemp,'daily_forecast_hightemp_hex'=>$htemp['color'],'added_by'=>$user,'isdeleted'=>0]);
+	$save = insert('daily_details',['location_id'=>$wlocation,'forecast_date'=>$wdate,'daily_forecast_rainfall'=>$wrainfall,'daily_forecast_rainfall_hex'=>$rainf['color'],'daily_forecast_rainfall_percentage'=>$wrainfallpercent,'daily_forecast_rain_percent_hex'=>$rainp['color'],'rainfall_description'=>$wraindes,'cloudcover'=>$wcloud,'humidity'=>$whumid,'windspeed'=>$wwind,'winddirection'=>$wwinddirect,'daily_forecast_low_temp'=>$wlowtemp,'daily_forecast_lowtemp_hex'=>$ltemp['color'],'daily_forecast_high_temp'=>$whightemp,'daily_forecast_hightemp_hex'=>$htemp['color'],'daily_forecast_mean_temp'=>$wmeantemp,'added_by'=>$user,'isdeleted'=>0,'daily_forecast_mean_temp_hex'=>$mtemp['color']]);
 	
 	if($save)
 	{
@@ -2371,10 +2483,342 @@ if(isset($_POST['fwdatefrom']))
 				</div>
 		
 	<div class="box" style = "margin-top:10px;">
-		<div class="box-body">
+		<div class="box-body" style = "overflow:auto;">
 			<?php daily_weather($fwdatefrom ,$fwdateto,$fwlocation,1,0)?>	
 		</div>
 	</div>
+	<?php
+}
+if(!empty($_REQUEST['newupload']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	//save_daily('../images/day1.dbf');
+	$level = $_REQUEST['newupload'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	?>
+		<h2>Upload Data File</h2>
+		<div class="box">
+			<div class="box-body">
+				<div id = "alert"></div>
+						<form id = "newweatherform">
+							<div class="row">
+								<div class="col-md-4">					  
+									 <div class="form-group">
+										<label for="lname">DATE:</label>
+										<input type="date" id = "uddate" name = "uddate" class="form-control" placeholder="DATE"  data-validation="required" data-validation-error-msg="Enter Date">
+									  </div>			 
+								</div>
+								
+								<div class="col-md-3">					  
+									<div class="form-group">
+										<label for="lname">Data File:</label>
+										<input type="file" name="udfile" class="form-control" data-validation="required" data-validation-error-msg="Browse Data  File">
+									</div>
+								</div>
+								<div class="col-md-3" style = "padding-top:25px;">
+									<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> UPLOAD</button>
+								</div>
+							</div>
+				
+						</form>
+							<script>
+								$("#wsave").click(
+									function()
+									{
+										$.validate({
+										form:'#newweatherform',
+										validateOnBlur : false,
+										errorMessagePosition : 'top',
+										modules : 'security',
+										onSuccess : function($form) {
+																var formData = $('#newweatherform')[0];
+																
+																$("#backdrop").modal({backdrop: false});
+																$("#backdropui").html("<h2>Uploading... Please Wait..</h2>");
+																$.ajax({
+																						url: 'php/main.php',
+																						type: "POST",
+																						data:  new FormData(formData),
+																						contentType: false,
+																						cache: false,
+																						processData:false,
+																						success: function(data)
+																						{
+																							
+																							$("#click").html(data);
+																							//alert("OKKK");
+																					
+																						},
+																						error: function() 
+																						{
+																							alert('Sending failed');
+																						} 	        
+																				   });
+											return false; // Will stop the submission of the form
+											},
+										});
+									}
+								);											
+							</script>
+				  
+				
+			</div>		
+			
+		</div>
+		
+	<?php
+}
+if(isset($_POST['uddate']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = strtoupper($val);
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+		$name = $_FILES['udfile']['name'];
+		$type = $_FILES['udfile']['type'];
+		$size = $_FILES['udfile']['size'];
+	
+			if($type == "application/octet-stream")
+			{
+				$save = save_daily($_FILES['udfile']['tmp_name'],$uddate);
+				
+				if($save != '')
+				{
+					?>
+					<script>
+						alert("<?php echo $save;?>");
+						$("#backdrop").modal('hide');
+						$('#contentui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								newupload:1
+							},
+							function(data) {
+								$('#contentui').html(data);		
+						});
+						
+					</script>
+				<?php
+				}
+			}
+			else
+			{
+					echo "
+						<script>
+							alert('Invalid DBF file');
+						</script>
+					";
+			}	
+}
+if(!empty($_REQUEST['showmap']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$level = $_REQUEST['showmap'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_locations, lup_provinces where lup_locations.location_id = $showmap
+	and lup_locations.province_id = lup_provinces.province_id"));
+	?>
+		<h2><?php echo $row['location_description']." ".$row['description'];?></h2>
+		<div class="box">
+			<div class="box-body">
+				<form id = "newlocationform">
+					<div class="row">
+						<div class="col-md-4">					  
+							<label>COORDINATES:</label>
+							<input type = "hidden" name = "map_id" value = "<?php echo $showmap;?>">
+							<input type="text" name="mcoor" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE">			 
+						</div>
+						<div class="col-md-4" style = "padding-top:25px;">
+							<button class = "btn btn-success btn-flat" id = "adsave"><i class="fa fa-save" ></i> SAVE</button>
+						</div>
+					</div>
+					
+				</form>
+			</div>		
+			<div id = "alert"></div>
+		</div>
+		<div class="box">
+			<div class="box-body" id = "coorui">
+				<?php coordinates($showmap);?>
+			</div>
+		</div>
+		<script>
+		$("#adsave").click(
+			function()
+			{
+				$.validate({
+				form:'#newlocationform',
+				validateOnBlur : false,
+				errorMessagePosition : 'top',
+				modules : 'security',
+				onSuccess : function($form) {
+				var formData = $('#newlocationform').serializeArray();									 
+					$.ajax({
+					url :  'php/main.php',
+					type : 'post',
+					datatype : 'json',
+					data : formData,		
+					success : function(data) {
+						$("#coorui").html(data);														
+					}
+					});
+					return false; // Will stop the submission of the form
+					},
+				});
+			}
+		);
+			
+													
+		</script>
+
+	<?php
+}
+if(isset($_POST['map_id']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$status = 0;
+	if(isset($_POST['adstatus']))
+		$status = 1;
+
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+		$save = insert('lup_coordinates',['coordinate'=>$mcoor,'location_id'=>$map_id,'added_by'=>$user,'isdeleted'=>0]);
+	
+		if($save)
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-info'></i> New Coordinates Added","#alert");
+			</script>
+		<?php
+		}
+		else
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Coordinates, Contact the System Administrator", "#alert");
+			</script>
+		<?php
+		}
+	coordinates($map_id);
+		
+}
+if(isset($_REQUEST['coordelete']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	
+	$del = update('lup_coordinates',['isdeleted'=>1],"coordinate_id=$coordelete");
+	
+	if($del)
+	{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-info'></i> Coordinates deleted","#alert");
+			</script>
+		<?php
+	}
+	else
+	{
+		?>
+			<script>
+				notify("<i class='fas fa-exclamation-triangle'></i> Error Deleting Coordinates Information, contact the system administrator","#alert");
+			</script>
+		<?php
+	}
+	?>
+		<script>
+			$("#controlui<?php echo $coorcount;?>").html('RECORD DELETED!');
+		</script>
+	<?php
+}
+if(isset($_POST['editwid']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	//$rainf = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_rainfall_legends where 
+	//rainfall_from <= $wrainfall and rainfall_to >= $wrainfall and isdeleted = 0"));
+	$rainp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_rainpercentage_legends where 
+	rain_percent_from <= $editwrainp and rain_percent_to >=$editwrainp and isdeleted = 0"));
+	$ltemp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where 
+	temp_from <= $editwlowtemp and temp_to >=$editwlowtemp and isdeleted = 0"));
+	$htemp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where 
+	temp_from <= $editwhightemp and temp_to >=$editwhightemp and isdeleted = 0"));
+	$mtemp = $rain = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where 
+	temp_from <= $editwmeantemp and temp_to >=$editwmeantemp and isdeleted = 0"));
+
+	
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	
+	$save = update('daily_details',['daily_forecast_rainfall_percentage'=>$editwrainp,'daily_forecast_rain_percent_hex'=>$rainp['color'],'rainfall_description'=>$editwraindes,'cloudcover'=>$editwcloud,'humidity'=>$editwhumid,'windspeed'=>$editwwind,'winddirection'=>$editwwinddirect,'daily_forecast_low_temp'=>$editwlowtemp,'daily_forecast_lowtemp_hex'=>$ltemp['color'],'daily_forecast_high_temp'=>$editwhightemp,'daily_forecast_hightemp_hex'=>$htemp['color'],'daily_forecast_mean_temp'=>$editwmeantemp,'daily_forecast_mean_temp_hex'=>$mtemp['color']],"daily_details_id=$editwid");
+	if($save)
+	{
+	?>
+		<script>
+			alert("Daily Weather Updated");
+		</script>
+	<?php
+	}
+	else
+	{
+	?>
+		<script>
+			alert("Error Updating New Daily Weather, Contact the System Administrator");
+		</script>
+	<?php
+	}	
+}
+if(isset($_REQUEST['deletewid']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	
+	$del = update('daily_details',['isdeleted'=>1],"daily_details_id=$deletewid");
+	
+	if($del)
+	{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-info'></i> Daily Weather deleted","#alert");
+			</script>
+		<?php
+	}
+	else
+	{
+		?>
+			<script>
+				notify("<i class='fas fa-exclamation-triangle'></i> Error Deleting Daily Weathe Information, contact the system administrator","#alert");
+			</script>
+		<?php
+	}
+	?>
+		<script>
+			$("#controlui<?php echo $deletewcount;?>").html('RECORD DELETED!');
+		</script>
 	<?php
 }
 ?>

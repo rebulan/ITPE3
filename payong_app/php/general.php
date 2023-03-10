@@ -28,6 +28,174 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function coordinates($location)
+{
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_coordinates where location_id = $location and isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+		<table class = "table table-bordered table-hover table-sm" id = "locationtable">
+			<thead>
+				<th></th>
+				<th>#</th>
+				<th>COORDINATES</th>
+							
+				<th></th>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				
+	
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select<?php echo $ctr;?>"></td>
+					<td><?php echo $ctr;?></td>
+					<td><?php echo $row['coordinate'];?></td>
+					<td id = "controlui<?php echo $ctr;?>">
+						<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+					</td>
+				</tr>
+					<script>						
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											coordelete:'<?php echo $row['coordinate_id'];?>',
+											coorcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+													
+						
+													
+					
+									
+									
+						
+						
+					</script>
+					
+				<?php
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					$('#locationtable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});												
+				}
+			);
+		</script>
+	<?php
+}
+
+function save_daily($dbf,$udate)
+{
+	//echo $dbf." aaa";
+	global $con;
+	 $fdbf = fopen($dbf,'r'); 
+	
+    $fields = array();
+
+    $buf = fread($fdbf,32);
+
+    $header=unpack( "VRecordCount/vFirstRecord/vRecordLength", substr($buf,4,8));
+	
+	 $goon = true; 
+
+    $unpackString='';
+
+    while ($goon && !feof($fdbf)) { // read fields:
+
+        $buf = fread($fdbf,32);
+
+        if (substr($buf,0,1)==chr(13)) {$goon=false;} // end of field list
+
+        else {
+
+            $field=unpack( "a11fieldname/A1fieldtype/Voffset/Cfieldlen/Cfielddec", substr($buf,0,18));
+
+           // echo 'Field: '.json_encode($field).'<br/>';
+
+            $unpackString.="A$field[fieldlen]$field[fieldname]/";
+
+            array_push($fields, $field);}}
+			
+    fseek($fdbf, $header['FirstRecord']+1); // move back to the start of the first record (after the field definitions)
+	$f = array();
+    for ($i=1; $i<=$header['RecordCount']; $i++) {
+
+        $buf = fread($fdbf,$header['RecordLength']);
+
+        $record=unpack($unpackString,$buf);
+
+        //echo 'record: '.json_encode($record).'<br/>';
+		array_push($f, $record);
+        //echo $i.$buf.'<br/>';
+		} //raw record
+	if(isset($f['0']['CITY']))
+	{
+		for ($i=0; $i<=$header['RecordCount']-1; $i++) {
+			//print_r($f[$i]);
+			//echo "<br>";
+			$str = str_replace(' ','',$f[$i]['CITY']);
+			$str = str_replace('(','',$str);
+			$str = str_replace(')','',$str);
+			$str =  mysqli_real_escape_string($con,strtoupper($str));
+			$loc = mysqli_fetch_assoc(mysqli_query($con,"Select lup_locations.location_id, CONCAT(TRIM(UPPER(lup_locations.location_description)),TRIM(UPPER(lup_provinces.description))) as loc from lup_locations,lup_provinces where CONCAT(REPLACE(UPPER(lup_locations.location_description), ' ', ''),REPLACE(UPPER(lup_provinces.description), ' ', '')) = '$str' and lup_locations.province_id = lup_provinces.province_id and lup_locations.isdeleted = 0"));
+			$rfval = $f[$i]['RAINFALLTO'];
+			$rf = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_rainpercentage_legends where rain_percent_from <= $rfval and rain_percent_to >= $rfval and isdeleted = 0"));
+			$ltval = $f[$i]['TEMPMIN'];
+			$lt = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where temp_from <= $ltval and temp_to >= $rfval and isdeleted = 0"));
+			$htval = $f[$i]['TEMPMAX'];
+			$ht = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_temperature_legends where temp_from <= $htval and temp_to >= $htval and isdeleted = 0"));
+			//$loc = mysqli_fetch_assoc(mysqli_query($con,"Select lup_locations.location_id, CONCAT(TRIM(UPPER(lup_locations.location_description)),TRIM(UPPER(lup_provinces.description))) as loc from lup_locations,lup_provinces where lup_locations.province_id = lup_provinces.province_id and lup_locations.isdeleted = 0"));
+			//echo $loc['loc']."<br>";
+			//if(!empty($loc))
+			//{
+				insert('daily_details',['location_id'=>$loc['location_id'],'forecast_date'=>$udate,'location_des'=>$f[$i]['CITY'],'daily_forecast_rainfall_percentage'=>$f[$i]['RAINFALLTO'],'daily_forecast_rain_percent_hex' =>$rf['color'],'rainfall_description'=>$f[$i]['RAINFALLDE'],'cloudcover'=>$f[$i]['CLOUDCOVER'],'humidity'=>$f[$i]['RELHUMIDIT'],'windspeed'=>$f[$i]['WINDSPEED'],'winddirection'=>$f[$i]['WINDDIRECT'],'daily_forecast_low_temp'=>$f[$i]['TEMPMIN'],'daily_forecast_lowtemp_hex'=>$lt['color'],'daily_forecast_high_temp'=>$f[$i]['TEMPMAX'],'daily_forecast_hightemp_hex'=>$ht['color'],'daily_forecast_mean_temp'=>$f[$i]['TEMPMEAN']]);
+			//}
+		}
+		return $i." record/s has been Uploaded";
+	}
+	else{
+		return "Invalid file Format";
+	}
+	
+    fclose($fdbf); 
+	
+}
+
 function daily_weather($dfrom,$dto,$location,$level,$print)
 {
 		global $con;
@@ -35,28 +203,30 @@ function daily_weather($dfrom,$dto,$location,$level,$print)
 		$agent = get_agent($user);
 
 		$string = "SELECT 
-		forecast_daily_details.daily_details_id as DailyDetailsID,
-		forecast_daily_details.forecast_date as ForecastDate,
+		daily_details.daily_details_id as DailyDetailsID,
+		daily_details.forecast_date as ForecastDate,
 		lup_locations.location_id,
 		CONCAT(lup_locations.location_description,',',lup_provinces.description) as LocationDescription,
-		forecast_daily_details.daily_forecast_rainfall as RainFall,
-		lup_rainfall_legends.color as RainFallColorCode,
-		forecast_daily_details.daily_forecast_rainfall_percentage as RainFallPercentage,
-		lup_rainpercentage_legends.color as RainFallPercentageColorCode,
-		forecast_daily_details.daily_forecast_low_temp as LowTemp,
-		forecast_daily_details.daily_forecast_lowtemp_hex as LowTempColorCode,
-		forecast_daily_details.daily_forecast_high_temp as HighTemp,
-		forecast_daily_details.daily_forecast_hightemp_hex as HighTempColorCode
-		FROM forecast_daily_details, lup_rainfall_legends, lup_locations, lup_rainpercentage_legends, lup_provinces WHERE forecast_daily_details.isdeleted = 0
-		and forecast_daily_details.location_id = lup_locations.location_id 
-		and forecast_daily_details.daily_forecast_rainfall_id = lup_rainfall_legends.rainfall_legend_id
-		and forecast_daily_details.daily_forecast_rain_percent_id = lup_rainpercentage_legends.rain_percentage_legend_id
+		daily_details.daily_forecast_rainfall as RainFall,
+		daily_details.daily_forecast_rainfall_percentage as RainFallPercentage,
+		daily_details.rainfall_description as RainFallDescription,
+		daily_details.cloudcover as CloudCover,
+		daily_details.humidity as Humidity,
+		daily_details.windspeed as WindSpeed,
+		daily_details.winddirection as WindDirection,
+		daily_details.daily_forecast_low_temp as LowTemp,
+		daily_details.daily_forecast_lowtemp_hex as LowTempColorCode,
+		daily_details.daily_forecast_high_temp as HighTemp,
+		daily_details.daily_forecast_hightemp_hex as HighTempColorCode,
+		daily_details.daily_forecast_mean_temp as MeanTemp
+		FROM daily_details, lup_locations, lup_provinces WHERE daily_details.isdeleted = 0
+		and daily_details.location_id = lup_locations.location_id
 		and lup_locations.province_id = lup_provinces.province_id"; 
 		
 		if(!empty($dfrom))
 		{	
-			$string = $string." and (STR_TO_DATE(forecast_daily_details.forecast_date,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
-			STR_TO_DATE(forecast_daily_details.forecast_date,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
+			$string = $string." and (STR_TO_DATE(daily_details.forecast_date,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+			STR_TO_DATE(daily_details.forecast_date,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
 		
 		}
 		
@@ -76,72 +246,175 @@ function daily_weather($dfrom,$dto,$location,$level,$print)
 				<th>#</th>
 				<th>DATE</th>
 				<th>LOCATION</th>				
-				<th>RAINFALL</TH>
 				<th>RAINFALL PERCENTAGE</th>
+				<th>RAINFALL DESCRIPTION</th>
+				<th>CLOUD COVER</th>
+				<th>HUMIDITY</th>
+				<th>WIND SPEED</th>
+				<th>WIND DIRECTION</th>
 				<th>LOW TEMPERATURE</th>
 				<th>HIGH TEMPERATURE</th>
+				<th>MEAN TEMPERATURE</th>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
 				<th></th>
+				<?php
+				}
+				?>
 			</thead>
 		<?PHP
 			$ctr = 1;
 			while($row = mysqli_fetch_assoc($query))
 			{
+				if($print == 1)
+				{
 				?>
 				<tr>
 					<td><?php echo $ctr;?></td>
 					<td><?php echo $row['ForecastDate'];?></td>
 					<td><?php echo $row['LocationDescription'];?></td>
-					<td><?php echo $row['RainFall'];?></td>
 					<td><?php echo $row['RainFallPercentage'];?></td>
+					<td><?php echo $row['RainFallDescription'];?></td>
+					<td><?php echo $row['CloudCover'];?></td>
+					<td><?php echo $row['Humidity'];?></td>
+					<td><?php echo $row['WindSpeed'];?></td>
+					<td><?php echo $row['WindDirection'];?></td>
 					<td><?php echo $row['LowTemp'];?></td>
 					<td><?php echo $row['HighTemp'];?></td>
-					<td id = "controlui<?php echo $ctr;?>">
-						<button class = "btn btn-danger btn-flat btn-xs" id = "advdelete<?php echo $ctr;?>">DELETE</button>	
-						<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
-					</td>
+					<td><?php echo $row['MeanTemp'];?></td>
+					
 				</tr>
-					<script>													
-						$("#edit<?php echo $ctr;?>").click(
+
+					
+				<?php
+				}
+				else
+				{
+					?>
+						<tr>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $row['ForecastDate'];?></td>
+							<td><?php echo $row['LocationDescription'];?></td>
+							<td><input type="number" ID="wrainp<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['RainFallPercentage'];?>"></td>
+							<td>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from lup_rainfall_des where isdeleted = 0");
+											?>
+											<select name = "wraindes<?php echo $ctr;?>" id = "wraindes<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $row['RainFallDescription'];?>' hidden "Selected"><?php echo $row['RainFallDescription'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+							</td>
+							<td>
+								<?PHP
+											$pquery = mysqli_query($con,"select * from lup_weather_system where isdeleted = 0");
+											?>
+											<select name = "wcloud<?php echo $ctr;?>" id = "wcloud<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $row['CloudCover'];?>' hidden "Selected"><?php echo $row['CloudCover'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+	
+							</td>
+							<td><input type="number" ID="whumid<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['Humidity'];?>"></td>
+							<td><input type="number" ID="wwind<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['WindSpeed'];?>"></td>
+							<td>
+								<?PHP
+											$pquery = mysqli_query($con,"select * from lup_wind_direction where isdeleted = 0");
+											?>
+											<select name = "wwinddirect<?php echo $ctr;?>" id = "wwinddirect<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $row['WindDirection'];?>' hidden "Selected"><?php echo $row['WindDirection'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['description'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+							
+							</td>
+							<td><input type="number" ID="wlowtemp<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['LowTemp'];?>"></td>
+							<td><input type="number" ID="whightemp<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['HighTemp'];?>"></td>
+							<td><input type="number" ID="wmeantemp<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['MeanTemp'];?>"></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "wdelete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "wedit<?php echo $ctr;?>">EDIT</button>	
+							</td>
+						</tr>
+						<script>													
+						$("#wedit<?php echo $ctr;?>").click(
 							function(e)
 							{
 								e.preventDefault();								
-								$("#modal").modal("show");
-								$("#modalbody").css("min-width","60%");
+								alert('OK');
 															
 								$.post( 
 									'php/main.php',
 									{
-										editadvid:'<?php echo $row['announcement_id'];?>',
-										editadvlevel:'1'
+										editwid:'<?php echo $row['DailyDetailsID'];?>',
+										editwrainp:$("#wrainp<?php echo $ctr;?>").val(),
+										editwraindes:$("#wraindes<?php echo $ctr;?>").val(),
+										editwcloud:$("#wcloud<?php echo $ctr;?>").val(),
+										editwhumid:$("#whumid<?php echo $ctr;?>").val(),
+										editwwind:$("#wwind<?php echo $ctr;?>").val(),
+										editwwinddirect:$("#wwinddirect<?php echo $ctr;?>").val(),
+										editwlowtemp:$("#wlowtemp<?php echo $ctr;?>").val(),
+										editwhightemp:$("#whightemp<?php echo $ctr;?>").val(),
+										editwmeantemp:$("#wmeantemp<?php echo $ctr;?>").val(),
+										editwcount:'<?php echo $ctr;?>'
 									},
 									function(data) {
-										$('#announceui').html(data);		
+										$('#click').html(data);		
 									});
 							}
 						);
-						$("#advdelete<?php echo $ctr;?>").click(
-							function()
+						$("#wdelete<?php echo $ctr;?>").click(
+							function(e)
 							{
-												var r = confirm("confirm delete");
-
-														if(r == true)
-															{
-																$.post( 
-																	'php/main.php',
-																	{
-																		advdelete:'<?php echo $row["announcement_id"];?>',
-																		advdeletelevel:'1',
-																		advdeletecount:'<?php echo $ctr;?>'
-																	},
-																	function(data) {
-																		$('#click').html(data);		
-																	});
-															}
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletewid:'<?php echo $row['DailyDetailsID'];?>',
+											deletewcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
 							}
 						);
+						
+						
 					</script>
-					
-				<?php
+					<?php
+				}
 				$ctr++;
 			}
 			?>
@@ -560,7 +833,7 @@ function locations($level)
 		//echo $string;
 		$query = mysqli_query($con,$string);
 	?>
-		<table class = "table table-bordered table-hover table-sm" id = "locationtable">
+		<table class = "table table-bordered table-hover table-sm" id = "coortable">
 			<thead>
 				<th></th>
 				<th>#</th>
@@ -592,13 +865,13 @@ function locations($level)
 							{
 								e.preventDefault();
 																					
-								$("#modal").modal("show");
+								$("#modal").modal({backdrop: false});
 								$("#modalbody").css("min-width","60%");
 															
 								$.post( 
 									'php/main.php',
 									{
-										showadvdetails:'<?php echo $row['announcement_id'];?>'
+										showmap:'<?php echo $row['location_id'];?>'
 									},
 									function(data) {
 										$('#modalui').html(data);		
@@ -606,44 +879,7 @@ function locations($level)
 							}
 						);
 													
-						$("#edit<?php echo $ctr;?>").click(
-							function(e)
-							{
-								e.preventDefault();								
-								$("#modal").modal("show");
-								$("#modalbody").css("min-width","60%");
-															
-								$.post( 
-									'php/main.php',
-									{
-										editadvid:'<?php echo $row['announcement_id'];?>',
-										editadvlevel:'1'
-									},
-									function(data) {
-										$('#announceui').html(data);		
-									});
-							}
-						);
-						$("#advdelete<?php echo $ctr;?>").click(
-							function()
-							{
-												var r = confirm("confirm delete");
-
-														if(r == true)
-															{
-																$.post( 
-																	'php/main.php',
-																	{
-																		advdelete:'<?php echo $row["announcement_id"];?>',
-																		advdeletelevel:'1',
-																		advdeletecount:'<?php echo $ctr;?>'
-																	},
-																	function(data) {
-																		$('#click').html(data);		
-																	});
-															}
-							}
-						);
+						
 													
 					
 									
@@ -663,7 +899,7 @@ function locations($level)
 				function()
 				{
 						
-					$('#locationtable').DataTable({
+					$('#coortable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,

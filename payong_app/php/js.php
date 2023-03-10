@@ -91,6 +91,22 @@
 								</div>
 							  </div>
 						</div>
+						<div class="modal fade" id="backdrop">
+						  <div class="modal-dialog" id = "backdropbody">
+							<div class="modal-content">
+							  <div class="modal-header">
+								
+								
+							  </div>
+							  <div class="modal-body" id = "backdropui">
+								
+							  </div>
+							  
+							</div>
+							<!-- /.modal-content -->
+						  </div>
+						  <!-- /.modal-dialog -->
+						</div>
 						
 	<script>
 		$(".main-sidebar").css("background-color","#ea9bad");
