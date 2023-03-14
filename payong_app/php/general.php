@@ -913,54 +913,81 @@ function locations($level)
 	<?php
 }
 
-function advisory($location,$status,$dfrom,$dto)
+function advisory($status,$dfrom,$dto,$print)
 {
 		global $con;
 		$user = get_user_id($_SESSION['forecast']);
 		$agent = get_agent($user);
 
-		$string = "Select announcements.*,se_user.fullname,lup_locations.location_description from announcements,se_user,lup_locations where announcements.isdeleted = 0
-		and se_user.user_id = announcements.added_by
-		and lup_locations.location_id = announcements.location_id ";
-		
-		if(!empty($location) && $location != 'all')
-			$string = $string." and announcements.location_id = '$location'";
+		$string = "Select agri_advisory.*,se_user.fullname from agri_advisory,se_user where agri_advisory.isdeleted = 0
+		and se_user.user_id = agri_advisory.added_by";
 		
 		if((!empty($status)||$status == 0) && $status != 'all')
-			$string = $string." and announcements.status = '$status'";
+			$string = $string." and agri_advisory.status = '$status'";
 	
 		if(!empty($dfrom))
 		{	
-			$string = $string." and (STR_TO_DATE(announcements.date_added,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
-			STR_TO_DATE(announcements.date_added,'%Y-%m-%d')<= STR_TO_DATE('$dfrom','%Y-%m-%d'))";
-		
-		}
-		if(!empty($dto))
-		{	
-			$string = $string." and (STR_TO_DATE(announcements.date_added,'%Y-%m-%d')>= STR_TO_DATE('$dto','%Y-%m-%d') and
-			STR_TO_DATE(announcements.date_added,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
+			$string = $string." and (STR_TO_DATE(agri_advisory.date_added,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
+			STR_TO_DATE(agri_advisory.date_added,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
 		}
 		//echo $string;
 		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
 	?>
+	
 		<table class = "table table-bordered table-hover table-sm" id = "advtable">
 			<thead>
-				<th></th>
+				<th><input type = "checkbox" name = "selectall" id = "selectall"></th>
 				<th>#</th>
 				<th>TITLE</th>
 				<th>AUTHOR</th>				
 				<th>STATUS</TH>
-				<th>LOCATION</TH>
+				<th>VALIDITY</TH>
+				<th>DATE ADDED</TH>
 				<th></th>
 			</thead>
+			<script>
+				$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#advtable input').attr('checked', true);
+							} else {
+								$('#advtable input').attr('checked', false);
+							}
+					}
+				);
+			</script>
 		<?PHP
 			$ctr = 1;
 			while($row = mysqli_fetch_assoc($query))
 			{
 				?>
 				<tr>
-					<td><input type = "checkbox" name = "select<?php echo $ctr;?>"></td>
-					<td><?php echo $ctr;?></td>
+					<td><input type = "checkbox" name = "select[<?php echo $row['announcement_id'];?>]"></td>
+					<td><?php echo $ctr;?>
+						<input type = "hidden" name = "batchstatus" id = "batchstatus" value = "<?php echo $status;?>">
+						<input type = "hidden" name = "batchdfrom" id = "batchdfrom" value = "<?php echo $dfrom;?>">
+						<input type = "hidden" name = "batchdto" id = "batchdto" value = "<?php echo $dto;?>">
+					</td>
 					<td><?php echo $row['title'];?></td>
 					<td><?php echo $row['fullname'];?></td>
 					<td><?php
@@ -969,45 +996,26 @@ function advisory($location,$status,$dfrom,$dto)
 						else
 							echo "Unpublished";
 					;?></td>
-					<td><?php echo $row['location_description'];?></td>
+					<td><?php echo $row['date_from']." to ".$row['date_to'];?></td>
+					<td><?php echo $row['date_added'];?></td>
 					<td id = "controlui<?php echo $ctr;?>">
-						<button class = "btn btn-success btn-flat btn-xs" id = "details<?php echo $ctr;?>">DETAILS</button>	
 						<button class = "btn btn-danger btn-flat btn-xs" id = "advdelete<?php echo $ctr;?>">DELETE</button>	
-						<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+						<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
 					</td>
 				</tr>
-					<script>						
-						$("#details<?php echo $ctr;?>").click(
-							function(e)
-							{
-								e.preventDefault();
-																					
-								$("#modal").modal("show");
-								$("#modalbody").css("min-width","60%");
-															
-								$.post( 
-									'php/main.php',
-									{
-										showadvdetails:'<?php echo $row['announcement_id'];?>'
-									},
-									function(data) {
-										$('#modalui').html(data);		
-									});
-							}
-						);
-													
+					<script>													
 						$("#edit<?php echo $ctr;?>").click(
 							function(e)
 							{
-								e.preventDefault();								
-								$("#modal").modal("show");
-								$("#modalbody").css("min-width","60%");
-															
+								e.preventDefault();														
 								$.post( 
 									'php/main.php',
 									{
 										editadvid:'<?php echo $row['announcement_id'];?>',
-										editadvlevel:'1'
+										editadvlevel:'1',
+										editadvstatus:'<?php echo $status;?>',
+										editadvdfrom:'<?php echo $dfrom;?>',
+										editadvdto:'<?php echo $dto;?>'
 									},
 									function(data) {
 										$('#announceui').html(data);		
@@ -1047,20 +1055,136 @@ function advisory($location,$status,$dfrom,$dto)
 			}
 			?>
 		</table>
-		
+
 		<script>
+			
 			$("#document").ready(
 				function()
 				{
 						
-					$('#advtable').DataTable({
+					var table = $('#advtable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,
 					  'ordering'    : true,
 					  'info'        : true,
 					  'autoWidth'   : false
-					});												
+					});
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#advtable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "batchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#advlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#advtable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "batchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#advlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#advtable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "batchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#advlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+					
 				}
 			);
 		</script>

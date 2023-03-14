@@ -36,6 +36,7 @@
 	<script src="dist/js/demo.js"></script>
 	<script src="dist/js/form/form-validator/jquery.form-validator.min.js"></script>
 	<script src="dist/js/print/printThis.js"></script>
+	<script src="dist/js/tinymce/tinymce.min.js"></script>
 	<script src="bower_components/DataTables/DataTables-1.13.1/js/jquery.dataTables.min.js"></script>
 	<script src="bower_components/select2/dist/js/select2.min.js"></script>
 	<script src="bower_components/color_picker/dist/spectrum.min.js"></script>

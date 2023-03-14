@@ -109,7 +109,7 @@ if(isset($_REQUEST['userui']))
 				errorMessagePosition : 'top',
 				modules : 'security',
 				onSuccess : function($form) {
-				var formData = $('#newuserform').serializeArray();
+					var formData = $('#newuserform').serializeArray();
 																 //var formData = new FormData($('#regform')[0]);
 																 
 					$.ajax({
@@ -953,25 +953,33 @@ if(isset($_REQUEST['announcementui']))
 if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 {
 	foreach($_POST as $key=>$val) {
-		${$key} = trim(strtoupper($val));
+		${$key} = trim($val);
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	
-	$level = $_REQUEST['newadv'];
+	
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
 	
 	$title = "";
 	$status = 0;
-	$location = 0;
+	$dfrom = "";
+	$dto = "";
 	$adv = "";
+	$adid = "";
 	if(isset($_REQUEST['editadvid']))
 	{
-		$row = mysqli_fetch_assoc(mysqli_query("Select * from announcements where announcement_id = $editadvid"));
+		$level = $_REQUEST['editadvlevel'];
+		$adid =$_REQUEST['editadvid'];
+		$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from announcements where announcement_id = $editadvid"));
 		$title = $row['title'];
 		$status = $row['status'];
-		$location = $row['location_id'];
 		$adv = $row['description'];
+		$dfrom = $row['date_from'];
+		$dto = $row['date_to'];
+	}
+	else{
+		$level = $_REQUEST['newadv'];
 	}
 	?>
 		<div class="box">
@@ -980,34 +988,23 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 					<div class="row">
 						<div class="col-md-6">					  
 							<label>TITLE</label>
+							<input type = "hidden" name = "adid" value = '<?php echo $adid;?>'>
 							<input type="text" name="adtitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE" value = "<?php echo $title;?>">			 
 						</div>
 					</div>
 					<div class = "row" style = "margin-top:10px;">
 						<div class="col-md-4">
-							<?php
-							$lrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_locations where location_id = $location"));
-							?>
-							<div class="form-group">
-								<label>LOCATION:</label>			
-								<Select class = "form-control" name = "adlocation" id = "adlocation" data-validation="required"
-													data-validation-error-msg="Select Location" style = "height:75px;">
-									<option value = "<?php echo $lrow['location_id'];?>" hidden "Selected"><?php echo $lrow['location_description'];?></option>
-													<?php
-									$pmquery = mysqli_query($con,"Select * from lup_locations where isdeleted = 0");
-									while($prow = mysqli_fetch_assoc($pmquery))
-									{
-									?>
-										<option value = "<?php echo $prow['location_id'];?>"><?php echo $prow['location_description'];?></option>		
-									<?php
-									}
-									?>
-								</select>			
-							</div>
+								<div class = "form-group">
+									<label>Date From:</label>
+									<input type = "date" class = "form-control" name = "addfrom" id = "adbdfrom" placeholder = "yyyy-mm-dd" data-validation="required" data-validation-error-msg="Enter Date From" value = "<?php echo $dfrom;?>">
+								</div>		
 						</div>
-						<script>
-								$("#adlocation").select2();
-						</script>
+						<div class="col-md-4">
+								<div class = "form-group">
+									<label>Date TO:</label>
+									<input type = "date" class = "form-control" name = "addto" id = "adbdfrom" placeholder = "yyyy-mm-dd" data-validation="required" data-validation-error-msg="Enter Date to" value = "<?php echo $dto;?>">
+								</div>		
+						</div>
 						<div class="col-md-4">
 				
 								<?php
@@ -1032,19 +1029,55 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 							
 						</div>
 					</div>
+					<script>
+					tinymce. remove();
+					
+					tinymce.init({
+							selector:'#advisory',
+							plugins: 'print preview paste importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern noneditable help charmap emoticons',
+							toolbar: 'undo redo | bold italic underline strikethrough | fontselect fontsizeselect formatselect | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
+							 menubar: 'file edit view insert format tools table help'
+							});</script>
 					<div class = "row" style = "margin-top:10px;">
 						<div class="col-md-8">
 							<div class="form-group">
 								<label>ADVISORY:</label>			
-								<textarea name = "advisory" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter Announcement"><?php echo $adv;?></textarea>
+								<textarea name = "advisory" id = "advisory" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter Announcement"><?php echo $adv;?></textarea>
 							</div>
 						</DIV>
 					</div>
 					<div class = "row" style = "margin-top:10px;">
 						<div class="col-md-5">
 							<button class = "btn btn-success btn-flat" id = "adsave"><i class="fa fa-save"></i> SAVE</button>
-						
-							<button class = "btn btn-primary btn-flat" id = "searchproceed" style = "display:none;"><i class="fa fa-eye" ></i> PREVIEW</button>
+						<?php
+						if($adid != "")
+						{
+							?>
+								<button class = "btn btn-primary btn-flat" id = "cancel"> ADVISORY LIST</button>
+								<script>
+										$("#cancel").click(
+											function()
+											{
+											
+												$('#announceui').html(loading);	
+													$.post( 
+														'php/main.php',
+														{
+															browseadv:1,
+															advstatus:'<?php echo $editadvstatus;?>',
+															advdfrom:'<?php echo $editadvdfrom;?>',
+															advdto:'<?php echo $editadvdto;?>'
+														},
+														function(data) {
+															$('#announceui').html(data);		
+													});
+											}
+										);
+								</script>
+							<?php
+						}
+						?>
+							
 						</div>
 					</div>
 				</form>
@@ -1087,7 +1120,7 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 if(isset($_POST['adtitle']))
 {
 	foreach($_POST as $key=>$val) {
-		${$key} = trim(strtoupper($val));
+		${$key} = mysqli_real_escape_string($con,trim($val));
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	
@@ -1097,35 +1130,71 @@ if(isset($_POST['adtitle']))
 
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
-	$check = mysqli_num_rows(mysqli_query($con, "Select * from announcements where
+	$check = mysqli_num_rows(mysqli_query($con, "Select * from agri_advisory where
 	title = '$adtitle' and isdeleted = 0"));
 	$check = 0;
 	if($check == 0)
 	{
-		$save = insert('announcements',['title'=>$adtitle,'description'=>$advisory,'status'=>$status,'location_id'=>$adlocation,'added_by'=>$user,'isdeleted'=>0]);
-	
-		if($save)
+		if(!empty($adid))
 		{
-		?>
-			<script>
-				notify("<i class='fa fa-info'></i> New Announcement Added","#alert");
-			</script>
-		<?php
+			$save = update('agri_advisory',
+			['title'=>$adtitle,
+			'description'=>$advisory,
+			'status'=>$status,
+			'date_from'=>$addfrom,
+			'date_to'=>$addto],"announcement_id=$adid");
+		
+			if($save)
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-info'></i> Advisory Updated","#alert");
+				</script>
+			<?php
+			}
+			else
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-exclamation-triangle'></i> Error Updating Advisory, Contact the System Administrator", "#alert");
+				</script>
+			<?php
+			}
+
 		}
-		else
-		{
-		?>
-			<script>
-				notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Announcement, Contact the System Administrator", "#alert");
-			</script>
-		<?php
+		else{
+			$save = insert('agri_advisory',
+			['title'=>$adtitle,
+			'description'=>$advisory,
+			'status'=>$status,
+			'date_from'=>$addfrom,
+			'date_to'=>$addto,
+			'added_by'=>$user,
+			'isdeleted'=>0]);
+		
+			if($save)
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-info'></i> New Advisory Added","#alert");
+				</script>
+			<?php
+			}
+			else
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Advisory, Contact the System Administrator", "#alert");
+				</script>
+			<?php
+			}
 		}
 	}
 	else
 	{
 		?>
 			<script>
-				notify("<i class='fa fa-exclamation-triangle'></i> Announcement Title Already Exist","#classalert");
+				notify("<i class='fa fa-exclamation-triangle'></i> Advisory Title Already Exist","#classalert");
 			</script>
 		<?php
 	}
@@ -1133,6 +1202,11 @@ if(isset($_POST['adtitle']))
 }
 if(isset($_REQUEST['browseadv']))
 {
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
 	$level = $_REQUEST['browseadv'];
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
@@ -1142,28 +1216,7 @@ if(isset($_REQUEST['browseadv']))
 			<div class="box-body">
 				<form id = "browseadvform">
 					<div class = "row">	
-							<div class="col-md-3">
-								<div class = "form-group">
-									<label>LOCATION:</label>
-									<?PHP
-									$pquery = mysqli_query($con,"Select * from lup_locations where isdeleted = 0");
-									?>
-									<select name = "adblocation" id = "adblocation" class="form-control">
-													<option value = 'all' "Selected">ALL</option>
-												<?php
-													while($prow = mysqli_fetch_assoc($pquery))
-													{
-												?>
-													<option value = "<?php echo $prow['location_id'];?>"><?php echo $prow['location_description'];?></option>
-												<?php
-													}
-												?>
-									</select>
-								</div>		
-							</div>
-							<script>
-								$("#adblocation").select2();
-							</script>
+						
 							<div class="col-md-3">
 								<div class = "form-group">
 									<label>STATUS:</label>
@@ -1178,18 +1231,17 @@ if(isset($_REQUEST['browseadv']))
 
 							<div class="col-md-4">
 								<div class = "form-group">
-									<label>Date From:<i>(leave blank if all dates)</i></label>
+									<label>Date Published from:<i>(leave blank if all dates)</i></label>
 									<input type = "date" class = "form-control" name = "adbdfrom" id = "adbdfrom" placeholder = "yyyy-mm-dd">
 								</div>		
 							</div>
 							<div class="col-md-4">
 								<div class = "form-group">
-									<label>Enter Date To:<i>(leave blank if all dates)</i></label>
-									<input type = "date" class = "form-control" name = "adbdto"  id = "adbdto" placeholder = "yyyy-mm-dd"  >
-								</div>
+									<label>Date Published to:<i>(leave blank if all dates)</i></label>
+									<input type = "date" class = "form-control" name = "adbdto" id = "adbdto" placeholder = "yyyy-mm-dd">
+								</div>		
 							</div>
 							
-
 							<div class="col-md-3" style = "padding-top:25px;">
 									<div class = "form-group">
 										<button class = "btn btn-success btn-flat" id = "adbrowse">FILTER</button>
@@ -1201,7 +1253,21 @@ if(isset($_REQUEST['browseadv']))
 			</div>		
 			
 		</div>
-		<div id = "advlist"></div>
+		<div id = "advlist">
+			<?php
+				if(isset($advstatus))
+				{
+					?>
+						<div class="box" style = "margin-top:10px;">
+							<div class="box-body">
+								<?php advisory($advstatus,$advdfrom,$advdto,0);;?>	
+							</div>
+						</div>
+					<?php
+					
+				}
+			?>
+		</div>
 		<script>
 		$("#adbrowse").click(
 			function()
@@ -1231,28 +1297,18 @@ if(isset($_REQUEST['browseadv']))
 		</script>
 	<?php
 }
-if(isset($_POST['adblocation']))
+if(isset($_POST['adbstatus']))
 {
 	foreach($_POST as $key=>$val) {
 		${$key} = $val;
 	//echo "The value of ".$key." is ". $val." <br>";
 	}
 	?>
-	<div class="row">
-					<div class="col-lg-2 col-xs-6">
-						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
-					</div>
-					<div class="col-lg-2 col-xs-6">
-						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
-					</div>
-					<div class="col-lg-2 col-xs-6">
-						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
-					</div>
-				</div>
+	
 		
 	<div class="box" style = "margin-top:10px;">
 		<div class="box-body">
-			<?php advisory($adblocation,$adbstatus,$adbdfrom,$adbdto);?>	
+			<?php advisory($adbstatus,$adbdfrom,$adbdto,0);?>	
 		</div>
 	</div>
 	<?php
@@ -2819,6 +2875,74 @@ if(isset($_REQUEST['deletewid']))
 		<script>
 			$("#controlui<?php echo $deletewcount;?>").html('RECORD DELETED!');
 		</script>
+	<?php
+}
+if(!empty($_POST['batchdelete']))
+{
+	if(isset($_POST['select']))
+	{
+		foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_advisory',['isdeleted'=>1],"announcement_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(!empty($_POST['batchpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+	if(isset($_POST['select']))
+	{
+		
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_advisory',['status'=>1],"announcement_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+			</div>
+		</div>
+	<?php
+	
+}
+if(!empty($_POST['batchunpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+	if(isset($_POST['select']))
+	{
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_advisory',['status'=>2],"announcement_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+			</div>
+		</div>
 	<?php
 }
 ?>

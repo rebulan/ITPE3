@@ -13,13 +13,9 @@ require "../php/connect.php";
 	
 		if(!empty($_GET['limit']))
 			$limit = $_GET['limit'];
-		
-		if(!empty($_GET['DailyAgriID']))
-			$id = $_GET['DailyAgriID'];
-		
+
 
 		$str = "SELECT 
-		forecast_agri.forecast_agri_id as ForecastAgriID,
 		CONCAT(lup_locations.location_description,',',lup_provinces.description) as LocationDescription,
 		forecast_agri.forecast_agri_date as AgriDate,
 		forecast_agri.location_id,
@@ -31,7 +27,8 @@ require "../php/connect.php";
 		forecast_agri.templow as LowTemp,
 		forecast_agri.temphigh as HighTemp,
 		forecast_agri.rainfall_from as RainFallFrom,
-		forecast_agri.rainfall_to as RainFallTo
+		forecast_agri.rainfall_to as RainFallTo,
+		forecast_agri.rainfall_ave as RainFallAve
 		from forecast_agri,lup_locations,lup_weather_system,lup_provinces where forecast_agri.isdeleted = 0
 		and forecast_agri.location_id = lup_locations.location_id
 		and forecast_agri.weather_id = lup_weather_system.weather_system_id
@@ -39,9 +36,6 @@ require "../php/connect.php";
 		
 		if(!empty($location))
 			$str = $str." and CONCAT(lup_locations.location_description,',',lup_provinces.description) = '$location'";
-		
-		if(!empty($id))
-			$str = $str." and forecast_agri.forecast_agri_id = '$id'";
 		
 		if(!empty($fdate))
 		{
@@ -68,7 +62,7 @@ require "../php/connect.php";
 		
 		
 		while($record = mysqli_fetch_assoc($result)) {
-			$rows['ForecastAgriID'] = $record['ForecastAgriID'];
+			
 			$rows['LocationDescription'] = $record['LocationDescription'];
 			$rows['AgriDate'] = $record['AgriDate'];
 			$rows['Weather_Description'] = $record['Weather_Description'];
@@ -79,6 +73,7 @@ require "../php/connect.php";
 			$rows['HighTemp'] = $record['HighTemp'];
 			$rows['RainFallFrom'] = $record['RainFallFrom'];
 			$rows['RainFallTo'] = $record['RainFallTo'];
+			$rows['RainFallAve'] = $record['RainFallAve'];
 			
 			$cquery = mysqli_query($con,"Select coordinate from lup_coordinates where location_id = $record[location_id] and isdeleted = 0");
 			$ctr = 1;
