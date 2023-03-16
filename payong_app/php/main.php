@@ -79,7 +79,7 @@ if(isset($_REQUEST['userui']))
 	<section class = "content">
 		<div class="box">
 			<div class="box-body">
-				<form id = "newuserform">
+				<form id = "newuserform" method = "POST">
 					<div class="row">
 						<div class="col-md-3">					  
 							<label for="lname">USER ID NUMBER:</label>
@@ -967,16 +967,16 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 	$dto = "";
 	$adv = "";
 	$adid = "";
+	$issue = 0;
 	if(isset($_REQUEST['editadvid']))
 	{
 		$level = $_REQUEST['editadvlevel'];
 		$adid =$_REQUEST['editadvid'];
-		$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from announcements where announcement_id = $editadvid"));
+		$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_advisory where announcement_id = $editadvid"));
 		$title = $row['title'];
 		$status = $row['status'];
 		$adv = $row['description'];
-		$dfrom = $row['date_from'];
-		$dto = $row['date_to'];
+		$issue = $row['agri_info_id'];
 	}
 	else{
 		$level = $_REQUEST['newadv'];
@@ -984,7 +984,7 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<form id = "newadvform">
+				<form id = "newadvform" method = "POST">
 					<div class="row">
 						<div class="col-md-6">					  
 							<label>TITLE</label>
@@ -994,16 +994,33 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 					</div>
 					<div class = "row" style = "margin-top:10px;">
 						<div class="col-md-4">
-								<div class = "form-group">
-									<label>Date From:</label>
-									<input type = "date" class = "form-control" name = "addfrom" id = "adbdfrom" placeholder = "yyyy-mm-dd" data-validation="required" data-validation-error-msg="Enter Date From" value = "<?php echo $dfrom;?>">
-								</div>		
-						</div>
-						<div class="col-md-4">
-								<div class = "form-group">
-									<label>Date TO:</label>
-									<input type = "date" class = "form-control" name = "addto" id = "adbdfrom" placeholder = "yyyy-mm-dd" data-validation="required" data-validation-error-msg="Enter Date to" value = "<?php echo $dto;?>">
-								</div>		
+								<?php
+								$defid = "";
+								$def = "";
+								$lrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $issue"));
+								if(!empty($lrow))
+								{
+									$defid = $lrow['agri_info_id'];
+									$def = $lrow['date_from']." to ".$lrow['date_to'];
+								}
+								?>
+							<div class="form-group">
+								<label>DATE ISSUE:</label>			
+								<Select class = "form-control" name = "adissue" id = "adissue" data-validation="required"
+													data-validation-error-msg="Select Status">
+									<option value = "<?php echo $defid;?>" hidden "Selected"><?php echo $def;?></option>
+													<?php
+									$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+									while($prow = mysqli_fetch_assoc($pmquery))
+									{
+									?>
+										<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+									<?php
+									}
+									?>
+								</select>			
+							</div>
+							
 						</div>
 						<div class="col-md-4">
 				
@@ -1065,8 +1082,7 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 														{
 															browseadv:1,
 															advstatus:'<?php echo $editadvstatus;?>',
-															advdfrom:'<?php echo $editadvdfrom;?>',
-															advdto:'<?php echo $editadvdto;?>'
+															advissue:'<?php echo $editadvissue;?>'
 														},
 														function(data) {
 															$('#announceui').html(data);		
@@ -1141,8 +1157,7 @@ if(isset($_POST['adtitle']))
 			['title'=>$adtitle,
 			'description'=>$advisory,
 			'status'=>$status,
-			'date_from'=>$addfrom,
-			'date_to'=>$addto],"announcement_id=$adid");
+			'agri_info_id'=>$adissue],"announcement_id=$adid");
 		
 			if($save)
 			{
@@ -1167,8 +1182,7 @@ if(isset($_POST['adtitle']))
 			['title'=>$adtitle,
 			'description'=>$advisory,
 			'status'=>$status,
-			'date_from'=>$addfrom,
-			'date_to'=>$addto,
+			'agri_info_id'=>$adissue,
 			'added_by'=>$user,
 			'isdeleted'=>0]);
 		
@@ -1214,7 +1228,7 @@ if(isset($_REQUEST['browseadv']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<form id = "browseadvform">
+				<form id = "browseadvform" method = "POST">
 					<div class = "row">	
 						
 							<div class="col-md-3">
@@ -1224,24 +1238,29 @@ if(isset($_REQUEST['browseadv']))
 													data-validation-error-msg="Select UNIT">
 													<option value = 'all' "Selected">ALL</option>
 													<option value = '1' "Selected">PUBLISHED</option>
-													<option value = '0' "Selected">UNPUBLISHED</option>
+													<option value = '2' "Selected">UNPUBLISHED</option>
 									</select>
 								</div>		
 							</div>
-
 							<div class="col-md-4">
-								<div class = "form-group">
-									<label>Date Published from:<i>(leave blank if all dates)</i></label>
-									<input type = "date" class = "form-control" name = "adbdfrom" id = "adbdfrom" placeholder = "yyyy-mm-dd">
-								</div>		
-							</div>
-							<div class="col-md-4">
-								<div class = "form-group">
-									<label>Date Published to:<i>(leave blank if all dates)</i></label>
-									<input type = "date" class = "form-control" name = "adbdto" id = "adbdto" placeholder = "yyyy-mm-dd">
-								</div>		
-							</div>
+								<div class="form-group">
+									<label>DATE ISSUE:</label>			
+									<Select class = "form-control" name = "adbissue" id = "adbissue" data-validation="required"
+														data-validation-error-msg="Select Status">
+										<option value = "all" "Selected">ALL</option>
+														<?php
+										$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+										while($prow = mysqli_fetch_assoc($pmquery))
+										{
+										?>
+											<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+										<?php
+										}
+										?>
+									</select>			
+								</div>
 							
+							</div>	
 							<div class="col-md-3" style = "padding-top:25px;">
 									<div class = "form-group">
 										<button class = "btn btn-success btn-flat" id = "adbrowse">FILTER</button>
@@ -1260,7 +1279,7 @@ if(isset($_REQUEST['browseadv']))
 					?>
 						<div class="box" style = "margin-top:10px;">
 							<div class="box-body">
-								<?php advisory($advstatus,$advdfrom,$advdto,0);;?>	
+								<?php advisory($advstatus,$advissue,0);;?>	
 							</div>
 						</div>
 					<?php
@@ -1304,11 +1323,10 @@ if(isset($_POST['adbstatus']))
 	//echo "The value of ".$key." is ". $val." <br>";
 	}
 	?>
-	
 		
 	<div class="box" style = "margin-top:10px;">
 		<div class="box-body">
-			<?php advisory($adbstatus,$adbdfrom,$adbdto,0);?>	
+			<?php advisory($adbstatus,$adbissue,0);?>	
 		</div>
 	</div>
 	<?php
@@ -1426,7 +1444,7 @@ if(!empty($_REQUEST['newlocation']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<form id = "newlocationform">
+				<form id = "newlocationform" method = "POST">
 					<div class="row">
 						<div class="col-md-4">					  
 							<label>DESCRIPTION:</label>
@@ -1485,7 +1503,7 @@ if(isset($_REQUEST['browselocation']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<form id = "browselocform">
+				<form id = "browselocform" method = "POST">
 					<div class = "row">	
 							<div class="col-md-3">
 								<div class = "form-group">
@@ -1657,7 +1675,7 @@ if(!empty($_REQUEST['newtemplegend']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<form id = "newlocationform">
+				<form id = "newlocationform" method = "POST">
 					<div class="row">
 						<div class="col-md-3">					  
 							<label>COLOR:</label>
@@ -2208,7 +2226,7 @@ if(!empty($_REQUEST['newdailyweather']))
 		<div class="box">
 			<div class="box-body">
 				<div id = "alert"></div>
-						<form id = "newweatherform">
+						<form id = "newweatherform" method = "POST">
 							<div class="row">
 								<div class="col-md-4">					  
 									 <div class="form-group">
@@ -2894,7 +2912,7 @@ if(!empty($_POST['batchdelete']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+				<?php advisory($batchstatus,$batchissue,0);?>
 			</div>
 		</div>
 	<?php
@@ -2918,7 +2936,7 @@ if(!empty($_POST['batchpub']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+				<?php advisory($batchstatus,$batchissue,0);?>
 			</div>
 		</div>
 	<?php
@@ -2940,7 +2958,760 @@ if(!empty($_POST['batchunpub']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<?php advisory($batchstatus,$batchdfrom,$batchdto,0);?>
+				<?php advisory($batchstatus,$batchissue,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(!empty($_REQUEST['agridateui']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	//save_daily('../images/day1.dbf');
+	$level = $_REQUEST['agridateui'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	?>
+		<h2>AGRI WEATHER DATE ISSUE MANAGEMENT</h2>
+		<div class="box">
+			<div class="box-body">
+				<div id = "alert"></div>
+						<form id = "newissueform">
+							<div class="row">
+								<div class="col-md-4">					  
+									 <div class="form-group">
+										<label for="lname">DATE ISSUE FROM:</label>
+										<input type="date" id = "idatefrom" name = "idatefrom" class="form-control" placeholder="DATE"  data-validation="required" data-validation-error-msg="Enter Date">
+									  </div>			 
+								</div>
+								
+								<div class="col-md-4">					  
+									 <div class="form-group">
+										<label for="lname">DATE ISSUE FROM:</label>
+										<input type="date" id = "idateto" name = "idateto" class="form-control" placeholder="DATE"  data-validation="required" data-validation-error-msg="Enter Date">
+									  </div>			 
+								</div>
+								<div class="col-md-4">
+		
+									<div class="form-group">
+										<label>STATUS:</label>			
+										<Select class = "form-control" name = "istatus" id = "istatus" data-validation="required"
+															data-validation-error-msg="Select Status">
+											<option value = "" hidden "Selected"></option>
+															<?php
+											$pmquery = mysqli_query($con,"Select * from lup_status where isdeleted = 0");
+											while($prow = mysqli_fetch_assoc($pmquery))
+											{
+											?>
+												<option value = "<?php echo $prow['status_id'];?>"><?php echo $prow['status'];?></option>		
+											<?php
+											}
+											?>
+										</select>			
+									</div>
+							
+								</div>
+								
+								<div class="col-md-3" style = "padding-top:25px;">
+									<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> SAVE</button>
+								</div>
+							</div>
+				
+						</form>
+							<script>
+								$("#wsave").click(
+									function()
+									{
+										$.validate({
+										form:'#newissueform',
+										validateOnBlur : false,
+										errorMessagePosition : 'top',
+										modules : 'security',
+										onSuccess : function($form) {
+										var formData = $('#newissueform').serializeArray();									 
+											$.ajax({
+											url :  'php/main.php',
+											type : 'post',
+											datatype : 'json',
+											data : formData,		
+											success : function(data) {
+												$("#click").html(data);														
+											}
+											});
+											return false; // Will stop the submission of the form
+											},
+										});
+									}
+								);											
+							</script>
+				  
+				
+			</div>		
+			
+		</div>
+		<div id = "alert"></div>
+		<div class="box">
+			<div class="box-body" id = "issuelist">
+				<?php issue($level,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(isset($_POST['idatefrom']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	$save = insert('agri_info',['date_from' => $idatefrom,'date_to' =>$idateto, 'status'=>$istatus,'added_by'=>$user]);
+	if($save)
+	{
+	?>
+		<script>
+			notify("<i class='fa fa-info'></i> New Agri Weather Issue Added","#alert");
+		</script>
+	<?php
+	}
+	else
+	{
+	?>
+		<script>
+			notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Agri Weather Issue, Contact the System Administrator", "#alert");
+		</script>
+	<?php
+	}	
+}
+if(isset($_POST['editissueid']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	
+	$save = update('agri_info',['date_from'=>$editissuedatefrom,'date_to'=>$editissuedateto,'status'=>$editissuestatus],"agri_info_id=$editissueid");
+	if($save)
+	{
+	?>
+		<script>
+			alert("Agri Weather Issue Updated");
+		</script>
+	<?php
+	}
+	else
+	{
+	?>
+		<script>
+			alert("Error Updating Agri Weather Issue, Contact the System Administrator");
+		</script>
+	<?php
+	}	
+}
+if(isset($_REQUEST['deleteissueid']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	$del = update('agri_info',['isdeleted'=>1],"agri_info_id=$deleteissueid");
+	?>
+		<script>
+			$("#controlui<?php echo $deleteissuecount;?>").html('RECORD DELETED!');
+		</script>
+	<?php
+}
+if(!empty($_POST['issuebatchdelete']))
+{
+		foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_info',['isdeleted'=>1],"agri_info_id=$id");
+		}
+		issue($ilevel,0);
+}
+if(!empty($_POST['issuebatchpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_info',['status'=>1],"agri_info_id=$id");
+		}
+	
+	issue($ilevel,0);
+	
+}
+if(!empty($_POST['issuebatchunpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_info',['status'=>2],"agri_info_id=$id");
+		}
+	issue($ilevel,0);
+}
+if(isset($_REQUEST['agriforecastui']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$level = $_REQUEST['agriforecastui'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	?>
+	<section class="content-header">
+		<h1><i class="fa fa-bullhorn"></i> AGRI 10 DAYS WEATHER FORECAST</H1>
+	</section>
+	<section class = "content">
+		<div class="box">
+			<div class="box-body">
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus"></i> NEW FORECAST</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-primary btn-flat btn-block" id = "browse"><i class="fa fa-search"></i> BROWSE FORECAST</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	
+		<script>
+			$("#new").click(
+				function()
+				{
+					$('#announceui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								newagforecast:1
+							},
+							function(data) {
+								$('#announceui').html(data);		
+						});
+				}
+			);
+			$("#browse").click(
+				function()
+				{
+				
+					$('#announceui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								browseafg:1
+							},
+							function(data) {
+								$('#announceui').html(data);		
+						});
+				}
+			);
+			
+		</script>
+		
+		
+		<div id = "announceui">
+		</div>
+		
+	</section>
+	<?php
+}
+if(!empty($_REQUEST['newagforecast']) || !empty($_REQUEST['editafgid']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim($val);
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	$title = "";
+	$status = 0;
+	$dfrom = "";
+	$dto = "";
+	$adv = "";
+	$adid = "";
+	$issue = 0;
+	
+	if(isset($_REQUEST['editafgid']))
+	{
+		$level = $_REQUEST['editafgid'];
+		$adid =$_REQUEST['editafgid'];
+		$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_forecast where agri_forecast_id = $editafgid"));
+		$title = $row['title'];
+		$status = $row['status'];
+		$adv = $row['description'];
+		$issue = $row['agri_info_id'];
+	}
+	else{
+		$level = $_REQUEST['newagforecast'];
+	}
+	
+	?>
+		<div class="box">
+			<div class="box-body">
+				<form id = "newadvform">
+					<div class="row">
+						<div class="col-md-6">					  
+							<label>TITLE</label>
+							<input type = "hidden" name = "adid" value = '<?php echo $adid;?>'>
+							<input type="text" name="agftitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE" value = "<?php echo $title;?>">			 
+						</div>
+					</div>
+					<div class = "row" style = "margin-top:10px;">
+						<div class="col-md-4">
+								<?php
+								$defid = "";
+								$def = "";
+								$lrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $issue"));
+								if(!empty($lrow))
+								{
+									$defid = $lrow['agri_info_id'];
+									$def = $lrow['date_from']." to ".$lrow['date_to'];
+								}
+								?>
+							<div class="form-group">
+								<label>DATE ISSUE:</label>			
+								<Select class = "form-control" name = "adissue" id = "adissue" data-validation="required"
+													data-validation-error-msg="Select Status">
+									<option value = "<?php echo $defid;?>" hidden "Selected"><?php echo $def;?></option>
+													<?php
+									$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+									while($prow = mysqli_fetch_assoc($pmquery))
+									{
+									?>
+										<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+									<?php
+									}
+									?>
+								</select>			
+							</div>
+							
+						</div>
+						<div class="col-md-4">
+				
+								<?php
+								$lrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $status"));
+								?>
+							<div class="form-group">
+								<label>STATUS:</label>			
+								<Select class = "form-control" name = "adstatus" id = "adstatus" data-validation="required"
+													data-validation-error-msg="Select Status">
+									<option value = "<?php echo $lrow['status_id'];?>" hidden "Selected"><?php echo $lrow['status'];?></option>
+													<?php
+									$pmquery = mysqli_query($con,"Select * from lup_status where isdeleted = 0");
+									while($prow = mysqli_fetch_assoc($pmquery))
+									{
+									?>
+										<option value = "<?php echo $prow['status_id'];?>"><?php echo $prow['status'];?></option>		
+									<?php
+									}
+									?>
+								</select>			
+							</div>
+							
+						</div>
+					</div>
+					<script>
+					tinymce. remove();
+					
+					tinymce.init({
+							selector:'#advisory',
+							plugins: 'print preview paste importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern noneditable help charmap emoticons',
+							toolbar: 'undo redo | bold italic underline strikethrough | fontselect fontsizeselect formatselect | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
+							 menubar: 'file edit view insert format tools table help'
+							});</script>
+					<div class = "row" style = "margin-top:10px;">
+						<div class="col-md-8">
+							<div class="form-group">
+								<label>FORECAST:</label>			
+								<textarea name = "advisory" id = "advisory" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter Announcement"><?php echo $adv;?></textarea>
+							</div>
+						</DIV>
+					</div>
+					<div class = "row" style = "margin-top:10px;">
+						<div class="col-md-5">
+							<button class = "btn btn-success btn-flat" id = "adsave"><i class="fa fa-save"></i> SAVE</button>
+						<?php
+						if($adid != "")
+						{
+							?>
+								<button class = "btn btn-primary btn-flat" id = "cancel"> FORECAST LIST</button>
+								<script>
+										$("#cancel").click(
+											function(e)
+											{
+												e.preventDefault();
+												
+												$('#announceui').html(loading);	
+													$.post( 
+														'php/main.php',
+														{
+															browseafg:1,
+															agfstatus:'<?php echo $editafgstatus;?>',
+															agfissue:'<?php echo $editafgissue;?>'
+														},
+														function(data) {
+															$('#announceui').html(data);
+															
+													});
+											}
+										);
+								</script>
+							<?php
+						}
+						?>
+							
+						</div>
+					</div>
+				</form>
+			</div>		
+			<div id = "alert"></div>
+		</div>
+		<script>
+		$("#adsave").click(
+			function()
+			{
+				$.validate({
+				form:'#newadvform',
+				validateOnBlur : false,
+				errorMessagePosition : 'top',
+				modules : 'security',
+				onSuccess : function($form) {
+				var formData = $('#newadvform').serializeArray();
+																 //var formData = new FormData($('#regform')[0]);
+																 
+					$.ajax({
+					url :  'php/main.php',
+					type : 'post',
+					datatype : 'json',
+					data : formData,		
+					success : function(data) {
+						$("#click").html(data);														
+					}
+					});
+					return false; // Will stop the submission of the form
+					},
+				});
+			}
+		);
+			
+													
+		</script>
+
+	<?php
+}
+if(isset($_POST['agftitle']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = mysqli_real_escape_string($con,trim($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$status = 0;
+	if(isset($_POST['adstatus']))
+		$status = 1;
+
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	$check = mysqli_num_rows(mysqli_query($con, "Select * from agri_advisory where
+	title = '$agftitle' and isdeleted = 0"));
+	$check = 0;
+	if($check == 0)
+	{
+		if(!empty($adid))
+		{
+			$save = update('agri_forecast',
+			['title'=>$agftitle,
+			'description'=>$advisory,
+			'status'=>$status,
+			'agri_info_id'=>$adissue],"agri_forecast_id=$adid");
+		
+			if($save)
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-info'></i> Advisory Updated","#alert");
+				</script>
+			<?php
+			}
+			else
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-exclamation-triangle'></i> Error Updating Advisory, Contact the System Administrator", "#alert");
+				</script>
+			<?php
+			}
+
+		}
+		else{
+			$save = insert('agri_forecast',
+			['title'=>$agftitle,
+			'description'=>$advisory,
+			'status'=>$status,
+			'agri_info_id'=>$adissue,
+			'added_by'=>$user,
+			'isdeleted'=>0]);
+		
+			if($save)
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-info'></i> New Forecast Added","#alert");
+				</script>
+			<?php
+			}
+			else
+			{
+			?>
+				<script>
+					notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Forecast, Contact the System Administrator", "#alert");
+				</script>
+			<?php
+			}
+		}
+	}
+	else
+	{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-triangle'></i> Forecast Title Already Exist","#classalert");
+			</script>
+		<?php
+	}	
+}
+if(isset($_REQUEST['browseafg']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$level = $_REQUEST['browseafg'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	?>
+		<div class="box">
+			<div class="box-body">
+				<form id = "browseafgform" method = "POST">
+					<div class = "row">	
+						
+							<div class="col-md-3">
+								<div class = "form-group">
+									<label>STATUS:</label>
+									<select name = "afgstatus" id = "afgstatus" class="form-control" data-validation="required"
+													data-validation-error-msg="Select UNIT">
+													<option value = 'all' "Selected">ALL</option>
+													<option value = '1' "Selected">PUBLISHED</option>
+													<option value = '2' "Selected">UNPUBLISHED</option>
+									</select>
+								</div>		
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">
+									<label>DATE ISSUE:</label>			
+									<Select class = "form-control" name = "afgissue" id = "afgissue" data-validation="required"
+														data-validation-error-msg="Select Status">
+										<option value = "all" "Selected">ALL</option>
+														<?php
+										$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+										while($prow = mysqli_fetch_assoc($pmquery))
+										{
+										?>
+											<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+										<?php
+										}
+										?>
+									</select>			
+								</div>
+							
+							</div>	
+							<div class="col-md-3" style = "padding-top:25px;">
+									<div class = "form-group">
+										<button class = "btn btn-success btn-flat" id = "adbrowse">FILTER</button>
+										<button class = "btn btn-primary btn-flat" id = "adprint">PRINT</button>
+									</div>	
+							</div>
+					</div>
+				</form>
+			</div>		
+			
+		</div>
+		<div id = "forecastlist">
+			<?php
+				if(isset($agfstatus))
+				{
+					?>
+						<div class="box" style = "margin-top:10px;">
+							<div class="box-body">
+								<?php agri_forecast($agfstatus,$agfissue,0);?>	
+							</div>
+						</div>
+					<?php
+				}
+			?>
+		</div>
+		<script>
+		$("#adbrowse").click(
+			function()
+			{
+				$.validate({
+				form:'#browseafgform',
+				validateOnBlur : false,
+				errorMessagePosition : 'top',
+				modules : 'security',
+				onSuccess : function($form) {
+				var formData = $('#browseafgform').serializeArray();
+				$("#forecastlist").html(loading);												 
+					$.ajax({
+					url :  'php/main.php',
+					type : 'post',
+					datatype : 'json',
+					data : formData,		
+					success : function(data) {
+						$("#forecastlist").html(data);														
+					}
+					});
+					return false;
+					},
+				});
+			}
+		);										
+		</script>
+	<?php
+}
+if(isset($_POST['afgstatus']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	?>
+	<div class="box" style = "margin-top:10px;">
+		<div class="box-body">
+			<?php agri_forecast($afgstatus,$afgissue,0);?>	
+		</div>
+	</div>
+	<?php
+}
+if(isset($_REQUEST['afgdelete']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	$del = update('agri_forecast',['isdeleted'=>1],"agri_forecast_id=$afgdelete");
+	if($del)
+	{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-info'></i> Forecast deleted","#alert");
+			</script>
+		<?php
+	}
+	else
+	{
+		?>
+			<script>
+				notify("<i class='fas fa-exclamation-triangle'></i> Error Deleting Forecast Information, contact the system administrator","#alert");
+			</script>
+		<?php
+	}
+	?>
+		<script>
+			$("#controlui<?php echo $afgdeletecount;?>").html('RECORD DELETED!');
+		</script>
+	<?php
+}
+if(!empty($_POST['afgbatchdelete']))
+{
+	
+		foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_forecast',['isdeleted'=>1],"agri_forecast_id=$id");
+		}
+	
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php agri_forecast($afgbatchstatus,$afgbatchissue,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(!empty($_POST['afgbatchpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+	if(isset($_POST['select']))
+	{
+		
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_forecast',['status'=>1],"agri_forecast_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php agri_forecast($afgbatchstatus,$afgbatchissue,0);?>
+			</div>
+		</div>
+	<?php
+	
+}
+if(!empty($_POST['afgbatchunpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+	if(isset($_POST['select']))
+	{
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_forecast',['status'=>2],"agri_forecast_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php agri_forecast($afgbatchstatus,$afgbatchissue,0);?>
 			</div>
 		</div>
 	<?php

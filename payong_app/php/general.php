@@ -28,6 +28,568 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function agri_forecast($status,$issue,$print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select agri_info.*,agri_forecast.*,se_user.fullname from agri_forecast,se_user,agri_info where agri_forecast.isdeleted = 0
+		and se_user.user_id = agri_forecast.added_by
+		and agri_info.agri_info_id = agri_forecast.agri_info_id";
+		
+		if((!empty($status)||$status == 0) && $status != 'all')
+			$string = $string." and agri_forecast.status = '$status'";
+		
+		if(!empty($issue) && $issue != 'all')
+		{	
+			$string = $string." and agri_forecast.agri_info_id = $issue";
+		}
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+			<?php
+		}
+	?>
+	
+		<table class = "table table-bordered table-hover table-sm" id = "forecasttable">
+			<thead>
+				<th><input type = "checkbox" name = "selectall" id = "selectall"></th>
+				<th>#</th>
+				<th>TITLE</th>
+				<th>AUTHOR</th>				
+				<th>STATUS</TH>
+				<th>DATE ADDED</TH>
+				<th></th>
+			</thead>
+			<script>
+				$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#forecasttable input').attr('checked', true);
+							} else {
+								$('#forecasttable input').attr('checked', false);
+							}
+					}
+				);
+			</script>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select[<?php echo $row['agri_forecast_id'];?>]"></td>
+					<td><?php echo $ctr;?>
+						<input type = "hidden" name = "afgbatchstatus" id = "afgbatchstatus" value = "<?php echo $status;?>">
+						<input type = "hidden" name = "afgbatchissue" id = "afgbatchissue" value = "<?php echo $issue;?>">
+						
+					</td>
+					<td><?php echo $row['title'];?></td>
+					<td><?php echo $row['fullname'];?></td>
+					<td><?php
+						if($row['status'] == 1)
+							echo "Published";
+						else
+							echo "Unpublished";
+					;?></td>
+					<td><?php echo $row['date_added'];?></td>
+					<td id = "controlui<?php echo $ctr;?>">
+						<button class = "btn btn-danger btn-flat btn-xs" id = "advdelete<?php echo $ctr;?>">DELETE</button>	
+						<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
+					</td>
+				</tr>
+					<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();														
+								$.post( 
+									'php/main.php',
+									{
+										editafgid:'<?php echo $row['agri_forecast_id'];?>',
+										editafglevel:'1',
+										editafgstatus:'<?php echo $status;?>',
+										editafgissue:'<?php echo $issue;?>'
+									},
+									function(data) {
+										$('#announceui').html(data);		
+									});
+							}
+						);
+						$("#advdelete<?php echo $ctr;?>").click(
+							function()
+							{
+												var r = confirm("confirm delete");
+
+														if(r == true)
+															{
+																$.post( 
+																	'php/main.php',
+																	{
+																		afgdelete:'<?php echo $row["agri_forecast_id"];?>',
+																		afgdeletelevel:'1',
+																		afgdeletecount:'<?php echo $ctr;?>'
+																	},
+																	function(data) {
+																		$('#click').html(data);		
+																	});
+															}
+							}
+						);
+					</script>
+					
+				<?php
+				$ctr++;
+			}
+			?>
+		</table>
+
+		<script>
+			
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#forecasttable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#forecasttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "afgbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#forecastlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#forecasttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "afgbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#forecastlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#forecasttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "afgbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#forecastlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+					
+				}
+			);
+		</script>
+	<?php
+}
+
+function issue($level,$print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_info where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "agriissue">
+			<thead>
+				<?php
+				if($print == 0)
+				{
+				?>
+				<th><input type = "checkbox" name = "selectall"></th>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE FROM</th>
+				<th>DATE TO</th>				
+				<th>STATUS</TH>
+				<?php
+				if($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				if($print == 1)
+				{
+				?>
+				<tr>
+					
+					<td><?php echo $ctr;?></td>
+					<td><?php echo $row['date_from'];?></td>
+					<td><?php echo $row['date_to'];?></td>
+					<td><?php
+						if($row['status'] == 1)
+							echo "Published";
+						else
+							echo "Unpublished";
+					?></td>
+				</tr>
+					
+					
+				<?php
+				}
+				else
+				{
+					?>
+					<tr>
+						<input type = "hidden" name = "ilevel" value = "<?php echo $level;?>">
+						<td><input type = "checkbox" name = "select[<?php echo $row['agri_info_id'];?>]"></td>
+						<td><?php echo $ctr;?></td>
+						<td><input type="date" id = "idatefrom<?php echo $ctr;?>" name = "idatefrom<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['date_from'];?>"></td>
+						<td><input type="date" id = "idateto<?php echo $ctr;?>" name = "idateto<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['date_to'];?>"></td>
+						<td>
+											<?PHP
+											$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+											$pquery = mysqli_query($con,"select * from lup_status where isdeleted = 0");
+											?>
+											<select name = "istatus<?php echo $ctr;?>" id = "istatus<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $irow['status_id'];?>' hidden "Selected"><?php echo $irow['status'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['status_id'];?>"><?php echo $prow['status'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+							</td>
+						<td id = "controlui<?php echo $ctr;?>">
+							<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+							<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+						</td>
+					</tr>
+					<script>						
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+								
+								$.post( 
+									'php/main.php',
+									{
+										editissueid:'<?php echo $row['agri_info_id'];?>',
+										editissuedatefrom:$("#idatefrom<?php echo $ctr;?>").val(),
+										editissuedateto:$("#idateto<?php echo $ctr;?>").val(),
+										editissuestatus:$("#istatus<?php echo $ctr;?>").val()
+									},
+									function(data) {
+										$('#click').html(data);	
+										
+									});
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteissueid:'<?php echo $row['agri_info_id'];?>',
+											deleteissuecount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+													
+					
+									
+									
+						
+						
+					</script>
+					<?php
+				}
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#agriissue').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "issuebatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#issuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "issuebatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#issuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "issuebatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#issuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
 function coordinates($location)
 {
 		global $con;
@@ -913,22 +1475,22 @@ function locations($level)
 	<?php
 }
 
-function advisory($status,$dfrom,$dto,$print)
+function advisory($status,$issue,$print)
 {
 		global $con;
 		$user = get_user_id($_SESSION['forecast']);
 		$agent = get_agent($user);
 
-		$string = "Select agri_advisory.*,se_user.fullname from agri_advisory,se_user where agri_advisory.isdeleted = 0
-		and se_user.user_id = agri_advisory.added_by";
+		$string = "Select agri_info.*,agri_advisory.*,se_user.fullname from agri_advisory,se_user,agri_info where agri_advisory.isdeleted = 0
+		and se_user.user_id = agri_advisory.added_by
+		and agri_info.agri_info_id = agri_advisory.agri_info_id";
 		
 		if((!empty($status)||$status == 0) && $status != 'all')
 			$string = $string." and agri_advisory.status = '$status'";
 	
-		if(!empty($dfrom))
+		if(!empty($issue) && $issue != 'all')
 		{	
-			$string = $string." and (STR_TO_DATE(agri_advisory.date_added,'%Y-%m-%d')>= STR_TO_DATE('$dfrom','%Y-%m-%d') and
-			STR_TO_DATE(agri_advisory.date_added,'%Y-%m-%d')<= STR_TO_DATE('$dto','%Y-%m-%d'))";
+			$string = $string." and agri_advisory.agri_info_id = $issue";
 		}
 		//echo $string;
 		$query = mysqli_query($con,$string);
@@ -960,7 +1522,7 @@ function advisory($status,$dfrom,$dto,$print)
 				<th>TITLE</th>
 				<th>AUTHOR</th>				
 				<th>STATUS</TH>
-				<th>VALIDITY</TH>
+				<th>DATE ISSUE</TH>
 				<th>DATE ADDED</TH>
 				<th></th>
 			</thead>
@@ -985,8 +1547,8 @@ function advisory($status,$dfrom,$dto,$print)
 					<td><input type = "checkbox" name = "select[<?php echo $row['announcement_id'];?>]"></td>
 					<td><?php echo $ctr;?>
 						<input type = "hidden" name = "batchstatus" id = "batchstatus" value = "<?php echo $status;?>">
-						<input type = "hidden" name = "batchdfrom" id = "batchdfrom" value = "<?php echo $dfrom;?>">
-						<input type = "hidden" name = "batchdto" id = "batchdto" value = "<?php echo $dto;?>">
+						<input type = "hidden" name = "batchissue" id = "batchissue" value = "<?php echo $issue;?>">
+						
 					</td>
 					<td><?php echo $row['title'];?></td>
 					<td><?php echo $row['fullname'];?></td>
@@ -1014,8 +1576,7 @@ function advisory($status,$dfrom,$dto,$print)
 										editadvid:'<?php echo $row['announcement_id'];?>',
 										editadvlevel:'1',
 										editadvstatus:'<?php echo $status;?>',
-										editadvdfrom:'<?php echo $dfrom;?>',
-										editadvdto:'<?php echo $dto;?>'
+										editadvissue:'<?php echo $issue;?>'
 									},
 									function(data) {
 										$('#announceui').html(data);		
