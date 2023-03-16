@@ -1007,7 +1007,7 @@ if(!empty($_REQUEST['newadv']) || !empty($_REQUEST['editadvid']))
 							<div class="form-group">
 								<label>DATE ISSUE:</label>			
 								<Select class = "form-control" name = "adissue" id = "adissue" data-validation="required"
-													data-validation-error-msg="Select Status">
+													data-validation-error-msg="Select DATE ISSUE">
 									<option value = "<?php echo $defid;?>" hidden "Selected"><?php echo $def;?></option>
 													<?php
 									$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
@@ -3712,6 +3712,432 @@ if(!empty($_POST['afgbatchunpub']))
 		<div class="box">
 			<div class="box-body">
 				<?php agri_forecast($afgbatchstatus,$afgbatchissue,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(isset($_REQUEST['prognosisui']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$level = $_REQUEST['prognosisui'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	?>
+	<section class="content-header">
+		<h1><i class="fa fa-location"></i> PROGNOSIS</H1>
+	</section>
+	<section class = "content">
+		<div class="box">
+			<div class="box-body">
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus"></i> NEW PROGNOSIS</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-primary btn-flat btn-block" id = "browse"><i class="fa fa-search"></i> BROWSE PROGNOSIS</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	
+		<script>
+			$("#new").click(
+				function()
+				{
+					$('#contentui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								newprognosis:1
+							},
+							function(data) {
+								$('#contentui').html(data);		
+						});
+				}
+			);
+			
+			
+			$("#browse").click(
+				function()
+				{
+				
+					$('#contentui').html(loading);	
+						$.post( 
+							'php/main.php',
+							{
+								browseprognosis:1
+							},
+							function(data) {
+								$('#contentui').html(data);		
+						});
+				}
+			);
+			
+		</script>
+		
+		
+		<div id = "contentui">
+		</div>
+		
+	</section>
+	<?php
+}
+if(!empty($_REQUEST['newprognosis']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	//save_daily('../images/day1.dbf');
+	$level = $_REQUEST['newprognosis'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	?>
+		<h2>Add New Prognosis</h2>
+		<div class="box">
+			<div class="box-body">
+				<div id = "alert"></div>
+						<form id = "newprognosisform" method = "POST">
+							<div class="row">
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>LOCATION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
+											?>
+											<select name = "plocation" id = "plocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '' hidden "Selected">Select Location</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['region_id'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+										</div>		
+								</div>
+								<div class="col-md-4">
+									<div class="form-group">
+										<label>DATE ISSUE:</label>			
+										<Select class = "form-control" name = "pissue" id = "pissue" data-validation="required"
+															data-validation-error-msg="Select Date Issue">
+											<option value = "" hidden "Selected"></option>
+															<?php
+											$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+											while($prow = mysqli_fetch_assoc($pmquery))
+											{
+											?>
+												<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+											<?php
+											}
+											?>
+										</select>			
+									</div>
+							
+								</div>
+								<div class="col-md-4">
+									<div class="form-group">
+										<label>STATUS:</label>			
+										<Select class = "form-control" name = "pstatus" id = "pstatus" data-validation="required"
+															data-validation-error-msg="Select Status">
+											<option value = "" hidden "Selected"></option>
+															<?php
+											$pmquery = mysqli_query($con,"Select * from lup_status where isdeleted = 0");
+											while($prow = mysqli_fetch_assoc($pmquery))
+											{
+											?>
+												<option value = "<?php echo $prow['status_id'];?>"><?php echo $prow['status'];?></option>		
+											<?php
+											}
+											?>
+										</select>			
+									</div>
+									
+								</div>
+						
+								<div class="col-md-3">	
+									 <div class="form-group">
+										<label for="lname">MIN RAIN FALL:</label>
+										<input type="number" name="pminrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MIN RAIN FALL">				 
+									</div>
+								</div>
+								<div class="col-md-3">	
+									 <div class="form-group">
+										<label for="lname">MAX RAIN FALL:</label>
+										<input type="number" name="pmaxrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MAX RAIN FALL">				 
+									</div>
+								</div>
+								
+								<div class="col-md-3">	
+									<div class="form-group">
+									<label for="lname">MIN RAINY DAYS</label>
+									<input type="number" name="pminraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN RAINY DAYS">
+									</div>
+								</div>
+								<div class="col-md-3">	
+									<div class="form-group">
+									<label for="lname">MAX RAINY DAYS</label>
+									<input type="number" name="pmaxraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX RAINY DAYS">
+									</div>
+								</div>
+								<div class="col-md-3">		
+										 <div class="form-group">
+												<label>SOIL CONDITION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from lup_soil_wetness where isdeleted = 0");
+											?>
+											<select name = "psoil" id = "psoil" class="form-control"  data-validation="required" data-validation-error-msg="Select SOIL CONDITION">
+															<option value = '' hidden "Selected"></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['soil_wetness_id'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+										</div>		
+								</div>
+							
+								<div class="col-md-3">
+									<div class="form-group">
+										<label for="lname">MIN TEMPERATURE:</label>
+										<input type="number" name="pmintemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN TEMPERATURE">
+									</div>			 
+								</div>
+								<div class="col-md-3">					  
+									<div class="form-group">
+										<label for="lname">MAX TEMPERATURE:</label>
+										<input type="number" name="pmaxtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX TEMPERATURE">
+									</div>
+								</div>
+								<script>
+								tinymce. remove();
+					
+								tinymce.init({
+										selector:'#psum',
+										plugins: 'print preview paste importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern noneditable help charmap emoticons',
+										toolbar: 'undo redo | bold italic underline strikethrough | fontselect fontsizeselect formatselect | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
+										 menubar: 'file edit view insert format tools table help'
+										});</script>
+							</div>
+							<div class = "row" style = "margin-top:10px;">
+									<div class="col-md-3">					  
+										<div class="form-group">
+											<label for="lname">TITLE:</label>
+											<input type="text" name="ptitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE">
+										</div>
+									</div>
+							</div>
+								<div class = "row" style = "margin-top:10px;">
+									<div class="col-md-8">
+										<div class="form-group">
+											<label>SUMMARY:</label>			
+											<textarea name = "psum" id = "psum" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter SUMMARY"></textarea>
+										</div>
+									</DIV>
+								</div>
+								<div class = "row">
+									<div class="col-md-3" style = "padding-top:25px;">
+										<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> SAVE</button>
+									</div>
+								</div>
+				
+						</form>
+							<script>
+								$("#wsave").click(
+									function()
+									{
+										$.validate({
+										form:'#newprognosisform',
+										validateOnBlur : false,
+										errorMessagePosition : 'top',
+										modules : 'security',
+										onSuccess : function($form) {
+										var formData = $('#newprognosisform').serializeArray();									 
+											$.ajax({
+											url :  'php/main.php',
+											type : 'post',
+											datatype : 'json',
+											data : formData,		
+											success : function(data) {
+												$("#click").html(data);														
+											}
+											});
+											return false; // Will stop the submission of the form
+											},
+										});
+									}
+								);											
+							</script>
+				  
+				
+			</div>		
+			
+		</div>
+		
+	<?php
+}
+if(isset($_POST['plocation']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	$save = insert('agri_prognosis',['region_id'=>$plocation,
+	'title'=>$ptitle,'content'=>$psum,
+	'rainf_min'=>$pminrainfall,
+	'rainf_max'=>$pmaxrainfall,
+	'raind_min'=>$pminraind,
+	'raind_max'=>$pmaxraind,
+	'temp_min'=>$pmintemp,
+	'temp_max'=>$pmaxtemp,
+	'soil_condition'=>'',
+	'soil_condition_id'=>$psoil,
+	'status'=>$pstatus,
+	'agri_info_id'=>$pissue,
+	'added_by'=>$user,
+	'isdeleted'=>0]);
+	
+	if($save)
+	{
+	?>
+		<script>
+			notify("<i class='fa fa-info'></i> New Prognosis Added","#alert");
+		</script>
+	<?php
+	}
+	else
+	{
+	?>
+		<script>
+			notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Prognosis, Contact the System Administrator", "#alert");
+		</script>
+	<?php
+	}
+}
+if(isset($_REQUEST['browseprognosis']))
+{
+	$level = $_REQUEST['browseprognosis'];
+	$user = get_user_id($_SESSION['forecast']);
+	$agent = get_agent($user);
+	
+	?>
+		<div class="box">
+			<div class="box-body">
+				<form id = "browseprogform" method = "POST">
+					<div class = "row">	
+							<div class="col-md-3">		
+										 <div class="form-group">
+												<label>LOCATION:</label>
+											<?PHP
+											$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
+											?>
+											<select name = "pblocation" id = "pblocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = 'all' hidden "Selected">ALL</option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['region_id'];?>"><?php echo $prow['description'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+										</div>		
+								</div>
+							<div class="col-md-3">
+								<div class = "form-group">
+									<label>STATUS:</label>
+									<select name = "pbstatus" id = "pbstatus" class="form-control" data-validation="required"
+													data-validation-error-msg="Select UNIT">
+													<option value = 'all' "Selected">ALL</option>
+													<option value = '1' "Selected">PUBLISHED</option>
+													<option value = '2' "Selected">UNPUBLISHED</option>
+									</select>
+								</div>		
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">
+									<label>DATE ISSUE:</label>			
+									<Select class = "form-control" name = "pbissue" id = "pbissue" data-validation="required"
+														data-validation-error-msg="Select Status">
+										<option value = "all" "Selected">ALL</option>
+														<?php
+										$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
+										while($prow = mysqli_fetch_assoc($pmquery))
+										{
+										?>
+											<option value = "<?php echo $prow['agri_info_id'];?>"><?php echo $prow['date_from']." to ".$prow['date_to'];?></option>		
+										<?php
+										}
+										?>
+									</select>			
+								</div>
+							
+							</div>	
+							<div class="col-md-3" style = "padding-top:25px;">
+									<div class = "form-group">
+										<button class = "btn btn-success btn-flat" id = "pbrowse">FILTER</button>
+										<button class = "btn btn-primary btn-flat" id = "pprint">PRINT</button>
+									</div>	
+							</div>
+					</div>
+				</form>
+			</div>		
+			
+		</div>
+		<div id = "proglist" style = "overflow:auto;"> </div>
+		<script>
+		$("#pbrowse").click(
+			function()
+			{
+				$.validate({
+				form:'#browseprogform',
+				validateOnBlur : false,
+				errorMessagePosition : 'top',
+				modules : 'security',
+				onSuccess : function($form) {
+				var formData = $('#browseprogform').serializeArray();
+				$("#proglist").html(loading);												 
+					$.ajax({
+					url :  'php/main.php',
+					type : 'post',
+					datatype : 'json',
+					data : formData,		
+					success : function(data) {
+						$("#proglist").html(data);														
+					}
+					});
+					return false;
+					},
+				});
+			}
+		);										
+		</script>
+	<?php
+}
+if(!empty($_POST['pblocation']))
+{
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php prognosis($pbstatus,$pbissue,$pblocation,0);?>
 			</div>
 		</div>
 	<?php
