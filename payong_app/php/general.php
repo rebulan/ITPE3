@@ -28,6 +28,151 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function prognosis($status,$issue,$location,$print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_prognosis, lup_regions where agri_prognosis.isdeleted = 0
+		and agri_prognosis.region_id = lup_regions.region_id";
+		
+		if(!empty($status) && $status != 'ALL')
+		{	
+			$string = $string." and agri_prognosis.status = $status";
+		
+		}
+		
+		if(!empty($location) && $location != 'ALL')
+		{	
+			$string = $string." and lup_regions.region_id = $location";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'ALL')
+		{	
+			$string = $string." and agri_prognosis.agri_info_id = $issue";
+		
+		}
+		
+		echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+		<table class = "table table-bordered table-hover table-sm" id = "dailyweathertable">
+			<thead>
+				
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>REGION</th>				
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $row[agri_info_id]"));
+				if($print == 1)
+				{
+				?>
+				<tr>
+					<td><?php echo $ctr;?></td>
+					<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
+					<td><?php echo $row['description'];?></td>
+					
+				</tr>
+
+					
+				<?php
+				}
+				else
+				{
+					?>
+						<tr>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
+							<td><?php echo $row['description'];?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
+							</td>
+						</tr>
+						<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();														
+								$.post( 
+									'php/main.php',
+									{
+										editprogid:'<?php echo $row['agri_forecast_id'];?>',
+										editproglevel:'1',
+										editprogstatus:'<?php echo $status;?>',
+										editprogissue:'<?php echo $issue;?>',
+										editproglocation:'<?php echo $location;?>'
+									},
+									function(data) {
+										$('#announceui').html(data);		
+									});
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteprog:'<?php echo $row['prognosis_id'];?>',
+											deleteprogcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+						
+						
+					</script>
+					<?php
+				}
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					$('#dailyweathertable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});												
+				}
+			);
+		</script>
+	<?php
+}
+
 function agri_forecast($status,$issue,$print)
 {
 		global $con;
@@ -830,6 +975,7 @@ function daily_weather($dfrom,$dto,$location,$level,$print)
 			$ctr = 1;
 			while($row = mysqli_fetch_assoc($query))
 			{
+				$print = 1;
 				if($print == 1)
 				{
 				?>

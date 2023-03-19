@@ -2137,7 +2137,7 @@ if(isset($_REQUEST['dweatherui']))
 	
 	?>
 	<section class="content-header">
-		<h1><i class="fa fa-location"></i> 10-DAYS WEATHER FORECAST</H1>
+		<h1><i class="fa fa-location"></i> 10-DAYS WEATHER OUTLOOK</H1>
 	</section>
 	<section class = "content">
 		<div class="box">
@@ -2146,8 +2146,8 @@ if(isset($_REQUEST['dweatherui']))
 					<div class="col-lg-2 col-xs-6">
 						<button class = "btn btn-warning btn-flat btn-block" id = "upload"><i class="fa fa-upload"></i> UPLOAD DATA FILE </button>
 					</div>
-					<div class="col-lg-2 col-xs-6">
-						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus"></i> NEW DAILY WEATHER </button>
+					<div class="col-lg-2 col-xs-6" style = "display:none;">
+						<button class = "btn btn-success btn-flat btn-block" id = "new"><i class="fa fa-plus" ></i> NEW DAILY WEATHER </button>
 					</div>
 					<div class="col-lg-2 col-xs-6">
 						<button class = "btn btn-primary btn-flat btn-block" id = "browse"><i class="fa fa-search"></i> BROWSE</button>
@@ -3787,18 +3787,51 @@ if(isset($_REQUEST['prognosisui']))
 	</section>
 	<?php
 }
-if(!empty($_REQUEST['newprognosis']))
+if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 {
 	foreach($_POST as $key=>$val) {
 		${$key} = trim(strtoupper($val));
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
-	//save_daily('../images/day1.dbf');
-	$level = $_REQUEST['newprognosis'];
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
+	
+	$title = "";
+	$status = 0;
+	$issue= 0;
+	$prog_id = 0;
+	$content = "";
+	$rainfmin = "";
+	$rainfmax = "";
+	$raindmin = "";
+	$raindmax = "";
+	$tempmin = "";
+	$tempmax= "";
+	$soil = "";
+	$region = 0;
+	if(isset($_REQUEST['editprogid']))
+	{
+		$level = $_REQUEST['editproglevel'];
+		$adid =$_REQUEST['editprogid'];
+		$row = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_prognosis where prognosis_id = $editprogid"));
+		$title = $row['title'];
+		$status = $row['status'];
+		$content = $row['content'];
+		$issue = $row['agri_info_id'];
+		$prog_id = $editprogid;
+		$rainfmin = $row['rainf_min'];
+		$rainfmax = $row['rainf_max'];
+		$raindmin = $row['raind_min'];
+		$raindmax = $row['raind_max'];
+		$tempmin = $row['temp_min'];
+		$tempmax= $row['temp_max'];
+		$soil = $row['soil_condition_id'];
+		$region = $row['region_id'];
+	}
+	else{
+		$level = $_REQUEST['newprognosis'];
+	}
 	?>
-		<h2>Add New Prognosis</h2>
 		<div class="box">
 			<div class="box-body">
 				<div id = "alert"></div>
@@ -3808,10 +3841,11 @@ if(!empty($_REQUEST['newprognosis']))
 										 <div class="form-group">
 												<label>LOCATION:</label>
 											<?PHP
+											$rrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_regions where region_id = $region"));
 											$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
 											?>
 											<select name = "plocation" id = "plocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
-															<option value = '' hidden "Selected">Select Location</option>
+															<option value = '<?php echo $rrow['region_id'];?>' hidden "Selected"><?php echo $rrow['description'];?></option>
 														<?php
 															while($prow = mysqli_fetch_assoc($pquery))
 															{
@@ -3825,12 +3859,20 @@ if(!empty($_REQUEST['newprognosis']))
 										</div>		
 								</div>
 								<div class="col-md-4">
+									<?php
+									$arow = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $issue"));
+									$iss = "";
+									
+									if(!empty($arow))
+										$iss = $arow['date_from']." to ".$arow['date_to'];
+									?>
 									<div class="form-group">
 										<label>DATE ISSUE:</label>			
 										<Select class = "form-control" name = "pissue" id = "pissue" data-validation="required"
 															data-validation-error-msg="Select Date Issue">
-											<option value = "" hidden "Selected"></option>
+											<option value = "<?php echo $arow['agri_info_id'];?>" hidden "Selected"><?php echo $iss;?></option>
 															<?php
+											
 											$pmquery = mysqli_query($con,"Select * from agri_info where isdeleted = 0");
 											while($prow = mysqli_fetch_assoc($pmquery))
 											{
@@ -3844,12 +3886,16 @@ if(!empty($_REQUEST['newprognosis']))
 							
 								</div>
 								<div class="col-md-4">
+									<?php
+									$srow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where issue_id = $issue"));
+									?>
 									<div class="form-group">
 										<label>STATUS:</label>			
 										<Select class = "form-control" name = "pstatus" id = "pstatus" data-validation="required"
 															data-validation-error-msg="Select Status">
-											<option value = "" hidden "Selected"></option>
+											<option value = "<?php echo $srow['status_id'];?>" hidden "Selected"><?php echo $srow['status'];?></option>
 															<?php
+											
 											$pmquery = mysqli_query($con,"Select * from lup_status where isdeleted = 0");
 											while($prow = mysqli_fetch_assoc($pmquery))
 											{
@@ -3866,26 +3912,26 @@ if(!empty($_REQUEST['newprognosis']))
 								<div class="col-md-3">	
 									 <div class="form-group">
 										<label for="lname">MIN RAIN FALL:</label>
-										<input type="number" name="pminrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MIN RAIN FALL">				 
+										<input type="number" name="pminrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MIN RAIN FALL" value = "<?php echo $rainfmin;?>">				 
 									</div>
 								</div>
 								<div class="col-md-3">	
 									 <div class="form-group">
 										<label for="lname">MAX RAIN FALL:</label>
-										<input type="number" name="pmaxrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MAX RAIN FALL">				 
+										<input type="number" name="pmaxrainfall" class = "form-control" data-validation="required" data-validation-error-msg="Enter MAX RAIN FALL" value = "<?php echo $rainfmax;?>">				 
 									</div>
 								</div>
 								
 								<div class="col-md-3">	
 									<div class="form-group">
 									<label for="lname">MIN RAINY DAYS</label>
-									<input type="number" name="pminraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN RAINY DAYS">
+									<input type="number" name="pminraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN RAINY DAYS" value = "<?php echo $raindmin;?>">
 									</div>
 								</div>
 								<div class="col-md-3">	
 									<div class="form-group">
 									<label for="lname">MAX RAINY DAYS</label>
-									<input type="number" name="pmaxraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX RAINY DAYS">
+									<input type="number" name="pmaxraind" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX RAINY DAYS" value = "<?php echo $rainfmax;?>">
 									</div>
 								</div>
 								<div class="col-md-3">		
@@ -3912,13 +3958,13 @@ if(!empty($_REQUEST['newprognosis']))
 								<div class="col-md-3">
 									<div class="form-group">
 										<label for="lname">MIN TEMPERATURE:</label>
-										<input type="number" name="pmintemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN TEMPERATURE">
+										<input type="number" name="pmintemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MIN TEMPERATURE" value = "<?php echo $tempmin;?>">
 									</div>			 
 								</div>
 								<div class="col-md-3">					  
 									<div class="form-group">
 										<label for="lname">MAX TEMPERATURE:</label>
-										<input type="number" name="pmaxtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX TEMPERATURE">
+										<input type="number" name="pmaxtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX TEMPERATURE" value = "<?php echo $tempmax;?>">
 									</div>
 								</div>
 								<script>
@@ -3935,7 +3981,7 @@ if(!empty($_REQUEST['newprognosis']))
 									<div class="col-md-3">					  
 										<div class="form-group">
 											<label for="lname">TITLE:</label>
-											<input type="text" name="ptitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE">
+											<input type="text" name="ptitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE" value = "<?php echo $title;?>">
 										</div>
 									</div>
 							</div>
@@ -3943,7 +3989,7 @@ if(!empty($_REQUEST['newprognosis']))
 									<div class="col-md-8">
 										<div class="form-group">
 											<label>SUMMARY:</label>			
-											<textarea name = "psum" id = "psum" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter SUMMARY"></textarea>
+											<textarea name = "psum" id = "psum" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter SUMMARY"><?php echo $content;?>"</textarea>
 										</div>
 									</DIV>
 								</div>
@@ -4047,7 +4093,7 @@ if(isset($_REQUEST['browseprognosis']))
 											<?PHP
 											$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
 											?>
-											<select name = "pblocation" id = "pblocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+											<select name = "ppblocation" id = "pblocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
 															<option value = 'all' hidden "Selected">ALL</option>
 														<?php
 															while($prow = mysqli_fetch_assoc($pquery))
@@ -4132,8 +4178,12 @@ if(isset($_REQUEST['browseprognosis']))
 		</script>
 	<?php
 }
-if(!empty($_POST['pblocation']))
+if(!empty($_POST['ppblocation']))
 {
+		foreach($_POST as $key=>$val) {
+		${$key} = trim(strtoupper($val));
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
 	?>
 		<div class="box">
 			<div class="box-body">
@@ -4142,4 +4192,36 @@ if(!empty($_POST['pblocation']))
 		</div>
 	<?php
 }
+if(isset($_REQUEST['deleteprog']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	
+	$del = update('agri_prognosis',['isdeleted'=>1],"pronosis_id=$deleteprog");
+	
+	if($del)
+	{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-info'></i> Prognosis deleted","#alert");
+			</script>
+		<?php
+	}
+	else
+	{
+		?>
+			<script>
+				notify("<i class='fas fa-exclamation-triangle'></i> Error Deleting Prognosis Information, contact the system administrator","#alert");
+			</script>
+		<?php
+	}
+	?>
+		<script>
+			$("#controlui<?php echo $deleteprogcount;?>").html('RECORD DELETED!');
+		</script>
+	<?php
+}
+
 ?>
