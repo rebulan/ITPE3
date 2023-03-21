@@ -28,8 +28,1798 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function agri_daily_temp($status,$issue,$print)
+{
+		
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily_temp where isdeleted = 0";
+		
+		if(!empty($status) && $status != 'all')
+		{	
+			$string = $string." and status = $status";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'all')
+		{	
+			$string = $string." and agri_daily_id = $issue";
+		}
+		
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "temptable">
+			<thead>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#temptable input').attr('checked', true);
+							} else {
+								$('#temptable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>STATUS</th>		
+				<th>LOW LAND MIN TEMPERATURE</th>
+				<th>LOW LAND MAX TEMPERATURE</th>
+				<th>HIGH LAND MIN TEMPERATURE</th>
+				<th>HIGH LAND MAX TEMPERATURE</th>
+				<th>LOCATION</th>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_daily where agri_daily_id = $row[agri_daily_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select[<?php echo $row['agri_daily_temp_id'];?>]">
+					<input type = "hidden" name = "tempstatus" value = "<?php echo $status;?>">
+					<input type = "hidden" name = "tempissue" value = "<?php echo $issue;?>"></td>
+					<td><?php echo $ctr;?></td>
+					<td id = "tempissue<?php echo $ctr;?>"><?php echo $aginfo['date_issue'];?></td>
+					<td id = "tempstatus<?php echo $ctr;?>"><?php echo $statuss['status'];?></td>
+					<td id = "lltempmin<?php echo $ctr;?>"><?php echo $row['lowland_temp_min'];?></td>
+					<td id = "lltempmax<?php echo $ctr;?>"><?php echo $row['lowland_temp_max'];?></td>
+					<td id = "hltempmin<?php echo $ctr;?>"><?php echo $row['highland_temp_min'];?></td>
+					<td id = "hltempmax<?php echo $ctr;?>"><?php echo $row['highland_temp_max'];?></td>
+					<td id = "temploc<?php echo $ctr;?>">
+						<?php
+							$cquery = mysqli_query($con,"Select description as Provinces from lup_provinces where province_id IN($row[provinces])");
+
+							while($crow = mysqli_fetch_assoc($cquery))
+							{
+								echo $crow['Provinces']." ";
+							}
+						?>
+					</td>
+					<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+					</td>
+					<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								$("#modal").modal("show");
+								$("#modalbody").css("min-width","70%");
+								
+								$.post( 
+									'php/main.php',
+									{
+										edittempid:'<?php echo $row['agri_daily_temp_id'];?>',
+										edittempctr:'<?php echo $ctr;?>'
+									},
+									function(data) {
+										$('#modalui').html(data)
+									});
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletetemp:'<?php echo $row['agri_daily_temp_id'];?>',
+											deletetempcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</SCRIPT>
+				</tr>
+
+					
+				<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#temptable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#temptable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "tempbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agritemplist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#temptable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "tempbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agritemplist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#temptable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "tempbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agritemplist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
+function agri_daily_soil($status,$issue,$print)
+{
+		
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily_soil_condition where isdeleted = 0";
+		
+		if(!empty($status) && $status != 'all')
+		{	
+			$string = $string." and status = $status";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'all')
+		{	
+			$string = $string." and agri_daily_id = $issue";
+		}
+		
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "soiltable">
+			<thead>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#soiltable input').attr('checked', true);
+							} else {
+								$('#soiltable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>STATUS</th>		
+				<th>SOIL CONDITION</th>
+				<th>LOCATION</th>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_daily where agri_daily_id = $row[agri_daily_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				$sw = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_soil_wetness where soil_wetness_id = $row[soil_condition]"));
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select[<?php echo $row['agri_daily_soil_id'];?>]">
+					<input type = "hidden" name = "soilstatus" value = "<?php echo $status;?>">
+					<input type = "hidden" name = "soilissue" value = "<?php echo $issue;?>"></td>
+					<td><?php echo $ctr;?></td>
+					<td id = "soilissue<?php echo $ctr;?>"><?php echo $aginfo['date_issue'];?></td>
+					<td id = "soilstatus<?php echo $ctr;?>"><?php echo $statuss['status'];?></td>
+					<td id = "soilmin<?php echo $ctr;?>"><?php echo $sw['description'];?></td>
+					<td id = "soilloc<?php echo $ctr;?>">
+						<?php
+							$cquery = mysqli_query($con,"Select description as Provinces from lup_provinces where province_id IN($row[provinces])");
+
+							while($crow = mysqli_fetch_assoc($cquery))
+							{
+								echo $crow['Provinces']." ";
+							}
+						?>
+					</td>
+					<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+					</td>
+					<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								$("#modal").modal("show");
+								$("#modalbody").css("min-width","70%");
+								
+								$.post( 
+									'php/main.php',
+									{
+										editsoilid:'<?php echo $row['agri_daily_soil_id'];?>',
+										editsoilctr:'<?php echo $ctr;?>'
+									},
+									function(data) {
+										$('#modalui').html(data)
+									});
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletesoil:'<?php echo $row['agri_daily_soil_id'];?>',
+											deletesoilcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</SCRIPT>
+				</tr>
+
+					
+				<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#soiltable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#soiltable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "soilbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrisoillist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#soiltable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "soilbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrisoillist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#soiltable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "soilbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrisoillist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
+function agri_daily_leaf($status,$issue,$print)
+{
+		
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily_leaf where isdeleted = 0";
+		
+		if(!empty($status) && $status != 'all')
+		{	
+			$string = $string." and status = $status";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'all')
+		{	
+			$string = $string." and agri_daily_id = $issue";
+		}
+		
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "leaftable">
+			<thead>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#leaftable input').attr('checked', true);
+							} else {
+								$('#leaftable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>STATUS</th>		
+				<th>MIN LEAF WETNESS</th>
+				<th>MAX LEAF WETNESS</th>
+				<th>LOCATION</th>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_daily where agri_daily_id = $row[agri_daily_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select[<?php echo $row['agri_daily_leaf_id'];?>]">
+					<input type = "hidden" name = "leafstatus" value = "<?php echo $status;?>">
+					<input type = "hidden" name = "leafissue" value = "<?php echo $issue;?>"></td>
+					<td><?php echo $ctr;?></td>
+					<td id = "leafissue<?php echo $ctr;?>"><?php echo $aginfo['date_issue'];?></td>
+					<td id = "leafstatus<?php echo $ctr;?>"><?php echo $statuss['status'];?></td>
+					<td id = "leafmin<?php echo $ctr;?>"><?php echo $row['leaf_min'];?></td>
+					<td id = "leafmax<?php echo $ctr;?>"><?php echo $row['leaf_max'];?></td>
+					<td id = "leafloc<?php echo $ctr;?>">
+						<?php
+							$cquery = mysqli_query($con,"Select description as Provinces from lup_provinces where province_id IN($row[provinces])");
+
+							while($crow = mysqli_fetch_assoc($cquery))
+							{
+								echo $crow['Provinces']." ";
+							}
+						?>
+					</td>
+					<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+					</td>
+					<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								$("#modal").modal("show");
+								$("#modalbody").css("min-width","70%");
+								
+								$.post( 
+									'php/main.php',
+									{
+										editleafid:'<?php echo $row['agri_daily_leaf_id'];?>',
+										editleafctr:'<?php echo $ctr;?>'
+									},
+									function(data) {
+										$('#modalui').html(data)
+									});
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteleaf:'<?php echo $row['agri_daily_leaf_id'];?>',
+											deleteleafcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</SCRIPT>
+				</tr>
+
+					
+				<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#leaftable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#leaftable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "leafbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrileaflist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#leaftable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "leafbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrileaflist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#leaftable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "leafbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrileaflist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
+function agri_daily_humidity($status,$issue,$print)
+{
+		
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily_humidity where isdeleted = 0";
+		
+		if(!empty($status) && $status != 'all')
+		{	
+			$string = $string." and status = $status";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'all')
+		{	
+			$string = $string." and agri_daily_id = $issue";
+		}
+		
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "humiditytable">
+			<thead>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#humiditytable input').attr('checked', true);
+							} else {
+								$('#humiditytable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>STATUS</th>		
+				<th>MIN HUMIDITY</th>
+				<th>MAX HUMIDITY</th>
+				<th>LOCATION</th>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_daily where agri_daily_id = $row[agri_daily_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				?>
+				<tr>
+					<td><input type = "checkbox" name = "select[<?php echo $row['agri_daily_humidity_id'];?>]">
+					<input type = "hidden" name = "humstatus" value = "<?php echo $status;?>">
+					<input type = "hidden" name = "humissue" value = "<?php echo $issue;?>"></td>
+					<td><?php echo $ctr;?></td>
+					<td id = "hissue<?php echo $ctr;?>"><?php echo $aginfo['date_issue'];?></td>
+					<td id = "hstatus<?php echo $ctr;?>"><?php echo $statuss['status'];?></td>
+					<td id = "hmin<?php echo $ctr;?>"><?php echo $row['humidity_min'];?></td>
+					<td id = "hmax<?php echo $ctr;?>"><?php echo $row['humidity_max'];?></td>
+					<td id = "hloc<?php echo $ctr;?>">
+						<?php
+							$cquery = mysqli_query($con,"Select description as Provinces from lup_provinces where province_id IN($row[provinces])");
+
+							while($crow = mysqli_fetch_assoc($cquery))
+							{
+								echo $crow['Provinces']." ";
+							}
+						?>
+					</td>
+					<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+					</td>
+					<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								$("#modal").modal("show");
+								$("#modalbody").css("min-width","70%");
+								
+								$.post( 
+									'php/main.php',
+									{
+										editahumid:'<?php echo $row['agri_daily_humidity_id'];?>',
+										editahumctr:'<?php echo $ctr;?>'
+									},
+									function(data) {
+										$('#modalui').html(data)
+									});
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteahum:'<?php echo $row['agri_daily_humidity_id'];?>',
+											deleteahumcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</SCRIPT>
+				</tr>
+
+					
+				<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#humiditytable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#humiditytable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "humbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrihumlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#humiditytable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "humbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrihumlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#humiditytable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "humbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#agrihumlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
+function synopsis($status,$issue,$print)
+{
+		
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily_synopsis where isdeleted = 0";
+		
+		if(!empty($status) && $status != 'ALL')
+		{	
+			$string = $string." status = $status";
+		
+		}
+		
+		if(!empty($issue) && $issue != 'ALL')
+		{	
+			$string = $string." and agri_daily_id = $issue";
+		}
+		
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "synopsistable">
+			<thead>
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#synopsistable input').attr('checked', true);
+							} else {
+								$('#synopsistable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>TITLE</th>
+				<th>STATUS</th>				
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_daily where agri_daily_id = $row[agri_daily_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				if($print == 1)
+				{
+				?>
+				<tr>
+					
+					<td><?php echo $ctr;?></td>
+					<td><?php echo $aginfo['date_issue'];?></td>
+					<td><?php echo $row['title'];?></td>
+					<td><?php echo $statuss['status'];?></td>
+				</tr>
+
+					
+				<?php
+				}
+				else
+				{
+					?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['synopsis_id'];?>]">
+								<input type = "hidden" name = "sypstatus" value = "<?php echo $status;?>">
+								<input type = "hidden" name = "sypissue" value = "<?php echo $issue;?>">
+							</td>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $aginfo['date_issue'];?></td>
+							<td><?php echo $row['title'];?></td>
+							<td><?php echo $statuss['status'];?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
+							</td>
+						</tr>
+						<script>													
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								$.post( 
+									'php/main.php',
+									{
+										editsysid:'<?php echo $row['synopsis_id'];?>',
+										editsyslevel:'1',
+										editsysstatus:'<?php echo $status;?>',
+										editsysissue:'<?php echo $issue;?>'
+									},
+									function(data) {
+										$('#contentui').html(data);
+									
+									});
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletesys:'<?php echo $row['synopsis_id'];?>',
+											deletesyscount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+						
+						
+					</script>
+					<?php
+				}
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#synopsistable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#synopsistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "sypbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#synopsislist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#synopsistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "sypbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#synopsislist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#synopsistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "sypbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#synopsislist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
+function agridailyissue($level,$print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['forecast']);
+		$agent = get_agent($user);
+
+		$string = "Select * from agri_daily where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "agriissue">
+			<thead>
+				<?php
+				if($print == 0)
+				{
+				?>
+				<th><input type = "checkbox" name = "selectall"></th>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#agriissue input').attr('checked', true);
+							} else {
+								$('#agriissue input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				
+				<?php
+				}
+				?>
+				<th>#</th>
+				<th>DATE ISSUE</th>
+				<th>VALIDITY DATE</th>				
+				<th>STATUS</TH>
+				<?php
+				if($print == 0)
+				{
+				?>
+				<th></th>
+				<?php
+				}
+				?>
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$sta = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+				if($print == 1)
+				{
+				?>
+				<tr>
+					
+					<td><?php echo $ctr;?></td>
+					<td><?php echo $row['date_issue'];?></td>
+					<td><?php echo $row['validity_date'];?></td>
+					<td><?php
+						echo $sta['status'];
+					?></td>
+				</tr>
+					
+					
+				<?php
+				}
+				else
+				{
+					?>
+					<tr>
+						<input type = "hidden" name = "ilevel" value = "<?php echo $level;?>">
+						<td><input type = "checkbox" name = "select[<?php echo $row['agri_daily_id'];?>]"></td>
+						<td><?php echo $ctr;?></td>
+						<td><input type="datetime-local" id = "adidateissue<?php echo $ctr;?>" name = "adidateissue<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['date_issue'];?>"></td>
+						<td><input type="datetime-local" id = "adivalidity<?php echo $ctr;?>" name = "adivalidity<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['validity_date'];?>"></td>
+						<td>
+											<?PHP
+											$irow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
+											$pquery = mysqli_query($con,"select * from lup_status where isdeleted = 0");
+											?>
+											<select name = "adistatus<?php echo $ctr;?>" id = "adistatus<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $irow['status_id'];?>' hidden "Selected"><?php echo $irow['status'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['status_id'];?>"><?php echo $prow['status'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+							</td>
+						<td id = "controlui<?php echo $ctr;?>">
+							<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+							<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">EDIT</button>	
+						</td>
+					</tr>
+					<script>						
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+								
+								$.post( 
+									'php/main.php',
+									{
+										editadissueid:'<?php echo $row['agri_daily_id'];?>',
+										editadidateissue:$("#adidateissue<?php echo $ctr;?>").val(),
+										editadivalidity:$("#adivalidity<?php echo $ctr;?>").val(),
+										editadistatus:$("#adistatus<?php echo $ctr;?>").val()
+									},
+									function(data) {
+										$('#click').html(data);	
+										
+									});
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteadissueid:'<?php echo $row['agri_daily_id'];?>',
+											deleteadissuecount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+												
+					</script>
+					<?php
+				}
+				$ctr++;
+			}
+			?>
+		</table>
+		
+		<script>
+			$("#document").ready(
+				function()
+				{
+						
+					var table = $('#agriissue').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "adissuebatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#adissuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "adissuebatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#adissuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#agriissue').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "adissuebatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#adissuelist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
+				}
+			);
+		</script>
+	<?php
+}
+
 function prognosis($status,$issue,$location,$print)
 {
+		
 		global $con;
 		$user = get_user_id($_SESSION['forecast']);
 		$agent = get_agent($user);
@@ -55,15 +1845,54 @@ function prognosis($status,$issue,$location,$print)
 		
 		}
 		
-		echo $string;
+		//echo $string;
 		$query = mysqli_query($con,$string);
-	?>
-		<table class = "table table-bordered table-hover table-sm" id = "dailyweathertable">
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "prognosistable">
 			<thead>
-				
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<script>
+					$("#selectall").click(
+					function()
+					{
+							if ($(this).is(':checked')) {
+								$('#prognosistable input').attr('checked', true);
+							} else {
+								$('#prognosistable input').attr('checked', false);
+							}
+					}
+					);
+				</script>
+				<?php
+				}
+				?>
 				<th>#</th>
 				<th>DATE ISSUE</th>
-				<th>REGION</th>				
+				<th>REGION</th>
+				<th>STATUS</th>				
 				<?PHP
 				IF($print == 0)
 				{
@@ -78,14 +1907,16 @@ function prognosis($status,$issue,$location,$print)
 			while($row = mysqli_fetch_assoc($query))
 			{
 				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $row[agri_info_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
 				if($print == 1)
 				{
 				?>
 				<tr>
+					
 					<td><?php echo $ctr;?></td>
 					<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
 					<td><?php echo $row['description'];?></td>
-					
+					<td><?php echo $statuss['status'];?></td>
 				</tr>
 
 					
@@ -95,9 +1926,15 @@ function prognosis($status,$issue,$location,$print)
 				{
 					?>
 						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['prognosis_id'];?>]">
+								<input type = "hidden" name = "progstatus" value = "<?php echo $status;?>">
+								<input type = "hidden" name = "progissue" value = "<?php echo $issue;?>">
+								<input type = "hidden" name = "proglocation" value = "<?php echo $location;?>">
+							</td>
 							<td><?php echo $ctr;?></td>
 							<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
 							<td><?php echo $row['description'];?></td>
+							<td><?php echo $statuss['status'];?></td>
 							<td id = "controlui<?php echo $ctr;?>">
 								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
 								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
@@ -107,19 +1944,22 @@ function prognosis($status,$issue,$location,$print)
 						$("#edit<?php echo $ctr;?>").click(
 							function(e)
 							{
-								e.preventDefault();														
+								e.preventDefault();	
+								
 								$.post( 
 									'php/main.php',
 									{
-										editprogid:'<?php echo $row['agri_forecast_id'];?>',
+										editprogid:'<?php echo $row['prognosis_id'];?>',
 										editproglevel:'1',
 										editprogstatus:'<?php echo $status;?>',
 										editprogissue:'<?php echo $issue;?>',
 										editproglocation:'<?php echo $location;?>'
 									},
 									function(data) {
-										$('#announceui').html(data);		
+										$('#contentui').html(data);
+										
 									});
+									
 							}
 						);
 						$("#delete<?php echo $ctr;?>").click(
@@ -159,14 +1999,128 @@ function prognosis($status,$issue,$location,$print)
 				function()
 				{
 						
-					$('#dailyweathertable').DataTable({
+					var table = $('#prognosistable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,
 					  'ordering'    : true,
 					  'info'        : true,
 					  'autoWidth'   : false
-					});												
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
 				}
 			);
 		</script>
