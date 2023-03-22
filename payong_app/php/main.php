@@ -3790,7 +3790,7 @@ if(isset($_REQUEST['prognosisui']))
 if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 {
 	foreach($_POST as $key=>$val) {
-		${$key} = trim(strtoupper($val));
+		${$key} =  mysqli_real_escape_string($con,trim($val));
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	$user = get_user_id($_SESSION['forecast']);
@@ -3807,7 +3807,7 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 	$raindmax = "";
 	$tempmin = "";
 	$tempmax= "";
-	$soil = "";
+	$soil = 0;
 	$region = 0;
 	if(isset($_REQUEST['editprogid']))
 	{
@@ -3827,6 +3827,22 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 		$tempmax= $row['temp_max'];
 		$soil = $row['soil_condition_id'];
 		$region = $row['region_id'];
+		?>
+		<script>
+				$('#soillocationui').html(loading);
+				$.post( 
+					'php/main.php',
+					{
+						progprovincelist:'<?php echo $region;?>',
+						progval:'<?php echo $row['soil_condition_province'];?>'
+					},
+					function(data) {
+						$('#soillocationui').html(data);
+					});
+															
+											
+		</script>
+		<?php
 	}
 	else{
 		$level = $_REQUEST['newprognosis'];
@@ -3844,6 +3860,7 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 											$rrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_regions where region_id = $region"));
 											$pquery = mysqli_query($con,"Select * from lup_regions where isdeleted = 0");
 											?>
+											<input type = "hidden" name = "editprognosis_id" value = "<?php echo $prog_id;?>">
 											<select name = "plocation" id = "plocation" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
 															<option value = '<?php echo $rrow['region_id'];?>' hidden "Selected"><?php echo $rrow['description'];?></option>
 														<?php
@@ -3855,7 +3872,23 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 															}
 														?>
 											</select>
-											
+											<script>
+												$("#plocation").change(
+													function(e)
+													{
+														e.preventDefault();	
+														$.post( 
+															'php/main.php',
+															{
+																progprovincelist:$("#plocation").val()
+															},
+															function(data) {
+																$('#soillocationui').html(data);
+															});
+															
+													}
+												);
+											</script>
 										</div>		
 								</div>
 								<div class="col-md-4">
@@ -3887,7 +3920,7 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 								</div>
 								<div class="col-md-4">
 									<?php
-									$srow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where issue_id = $issue"));
+									$srow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $status"));
 									?>
 									<div class="form-group">
 										<label>STATUS:</label>			
@@ -3936,12 +3969,16 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 								</div>
 								<div class="col-md-3">		
 										 <div class="form-group">
+												<?php
+									$scrow = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_soil_wetness where soil_wetness_id = $soil"));
+									?>
+									
 												<label>SOIL CONDITION:</label>
 											<?PHP
 											$pquery = mysqli_query($con,"select * from lup_soil_wetness where isdeleted = 0");
 											?>
 											<select name = "psoil" id = "psoil" class="form-control"  data-validation="required" data-validation-error-msg="Select SOIL CONDITION">
-															<option value = '' hidden "Selected"></option>
+															<option value = '<?php echo $scrow['soil_wetness_id'];?>' hidden "Selected"><?php echo $scrow['description'];?></option>
 														<?php
 															while($prow = mysqli_fetch_assoc($pquery))
 															{
@@ -3967,6 +4004,17 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 										<input type="number" name="pmaxtemp" class="form-control" data-validation="required" data-validation-error-msg="Enter MAX TEMPERATURE" value = "<?php echo $tempmax;?>">
 									</div>
 								</div>
+								
+							</div>
+							<div id = "soillocationui"></div>
+							<div class = "row" style = "margin-top:10px;">
+									<div class="col-md-3">					  
+										<div class="form-group">
+											<label for="lname">TITLE:</label>
+											<input type="text" name="ptitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE" value = "<?php echo $title;?>">
+										</div>
+									</div>
+							</div>
 								<script>
 								tinymce. remove();
 					
@@ -3976,27 +4024,48 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 										toolbar: 'undo redo | bold italic underline strikethrough | fontselect fontsizeselect formatselect | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
 										 menubar: 'file edit view insert format tools table help'
 										});</script>
-							</div>
-							<div class = "row" style = "margin-top:10px;">
-									<div class="col-md-3">					  
-										<div class="form-group">
-											<label for="lname">TITLE:</label>
-											<input type="text" name="ptitle" class="form-control" data-validation="required" data-validation-error-msg="Enter TITLE" value = "<?php echo $title;?>">
-										</div>
-									</div>
-							</div>
+										
 								<div class = "row" style = "margin-top:10px;">
 									<div class="col-md-8">
 										<div class="form-group">
 											<label>SUMMARY:</label>			
-											<textarea name = "psum" id = "psum" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter SUMMARY"><?php echo $content;?>"</textarea>
+											<textarea name = "psum" id = "psum" cols = "70" rows = "10" class = "form-control" data-validation="required" data-validation-error-msg="Enter SUMMARY"><?php echo $content;?></textarea>
 										</div>
 									</DIV>
 								</div>
 								<div class = "row">
 									<div class="col-md-3" style = "padding-top:25px;">
 										<button class = "btn btn-success btn-flat" id = "wsave"><i class="fa fa-save" ></i> SAVE</button>
+										<?php
+										if(isset($_REQUEST['editprogid']))
+										{
+											?>
+												<button class = "btn btn-danger btn-flat" id = "cancel"><i class="fa fa-arrow-left"></i> BACK</button>
+												<script>
+														$("#cancel").click(
+															function(e)
+															{
+																e.preventDefault();
+																$('#contentui').html(loading);	
+																	$.post( 
+																		'php/main.php',
+																		{
+																			browseprognosis:1,
+																			progstatus:'<?php echo $editprogstatus;?>',
+																			progissue:'<?php echo $editprogissue;?>',
+																			proglocation:'<?php echo $editproglocation;?>'
+																		},
+																		function(data) {
+																			$('#contentui').html(data);		
+																	});
+															}
+														);
+												</script>
+											<?php
+										}
+										?>
 									</div>
+
 								</div>
 				
 						</form>
@@ -4010,16 +4079,28 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 										errorMessagePosition : 'top',
 										modules : 'security',
 										onSuccess : function($form) {
-										var formData = $('#newprognosisform').serializeArray();									 
-											$.ajax({
-											url :  'php/main.php',
-											type : 'post',
-											datatype : 'json',
-											data : formData,		
-											success : function(data) {
-												$("#click").html(data);														
+											
+											var check = $('#newprognosisform').find('input[type=checkbox]:checked').length;
+							
+											if(check != 0)
+											{
+												var formData = $('#newprognosisform').serializeArray();									 
+												$.ajax({
+												url :  'php/main.php',
+												type : 'post',
+												datatype : 'json',
+												data : formData,		
+												success : function(data) {
+													$("#click").html(data);														
+												}
+												});
 											}
-											});
+											else
+											{
+												alert("Select at least 1 Soil Condition Location")
+											}
+								
+										
 											return false; // Will stop the submission of the form
 											},
 										});
@@ -4037,47 +4118,97 @@ if(!empty($_REQUEST['newprognosis']) || !empty($_REQUEST['editprogid']))
 if(isset($_POST['plocation']))
 {
 	foreach($_POST as $key=>$val) {
-		${$key} = trim(strtoupper($val));
+		${$key} = mysqli_real_escape_string($con,$val);
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
 	
-	$save = insert('agri_prognosis',['region_id'=>$plocation,
-	'title'=>$ptitle,'content'=>$psum,
-	'rainf_min'=>$pminrainfall,
-	'rainf_max'=>$pmaxrainfall,
-	'raind_min'=>$pminraind,
-	'raind_max'=>$pmaxraind,
-	'temp_min'=>$pmintemp,
-	'temp_max'=>$pmaxtemp,
-	'soil_condition'=>'',
-	'soil_condition_id'=>$psoil,
-	'status'=>$pstatus,
-	'agri_info_id'=>$pissue,
-	'added_by'=>$user,
-	'isdeleted'=>0]);
+		$provval = "";
+		$provs = $_POST['progprovince'];
+		foreach ($provs as $id => $val) {
+			if(!empty($id))
+				$provval = $provval.",".$id;
+		}
+	$provval = trim($provval,",");
 	
-	if($save)
+	if($editprognosis_id != 0)
 	{
-	?>
-		<script>
-			notify("<i class='fa fa-info'></i> New Prognosis Added","#alert");
-		</script>
-	<?php
+		$save = update('agri_prognosis',['region_id'=>$plocation,
+		'title'=>$ptitle,'content'=>$psum,
+		'rainf_min'=>$pminrainfall,
+		'rainf_max'=>$pmaxrainfall,
+		'raind_min'=>$pminraind,
+		'raind_max'=>$pmaxraind,
+		'temp_min'=>$pmintemp,
+		'temp_max'=>$pmaxtemp,
+		'soil_condition'=>'',
+		'soil_condition_id'=>$psoil,
+		'soil_condition_province'=>$provval,
+		'status'=>$pstatus],"prognosis_id = $editprognosis_id");
+		
+		if($save)
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-info'></i> Prognosis Updated","#alert");
+			</script>
+		<?php
+		}
+		else
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-triangle'></i> Error Updating Prognosis, Contact the System Administrator", "#alert");
+			</script>
+		<?php
+		}
 	}
-	else
-	{
-	?>
-		<script>
-			notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Prognosis, Contact the System Administrator", "#alert");
-		</script>
-	<?php
+	else{
+		$save = insert('agri_prognosis',['region_id'=>$plocation,
+		'title'=>$ptitle,'content'=>$psum,
+		'rainf_min'=>$pminrainfall,
+		'rainf_max'=>$pmaxrainfall,
+		'raind_min'=>$pminraind,
+		'raind_max'=>$pmaxraind,
+		'temp_min'=>$pmintemp,
+		'temp_max'=>$pmaxtemp,
+		'soil_condition'=>'',
+		'soil_condition_id'=>$psoil,
+		'soil_condition_province'=>$provval,
+		'status'=>$pstatus,
+		'agri_info_id'=>$pissue,
+		'added_by'=>$user,
+		'isdeleted'=>0]);
+		
+		if($save)
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-info'></i> New Prognosis Added","#alert");
+			</script>
+		<?php
+		}
+		else
+		{
+		?>
+			<script>
+				notify("<i class='fa fa-exclamation-triangle'></i> Error Saving New Prognosis, Contact the System Administrator", "#alert");
+			</script>
+		<?php
+		}
+	
 	}
+	
 }
 if(isset($_REQUEST['browseprognosis']))
 {
+	foreach($_POST as $key=>$val) {
+		${$key} = mysqli_real_escape_string($con,$val);
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+	
 	$level = $_REQUEST['browseprognosis'];
 	$user = get_user_id($_SESSION['forecast']);
 	$agent = get_agent($user);
@@ -4148,7 +4279,21 @@ if(isset($_REQUEST['browseprognosis']))
 			</div>		
 			
 		</div>
-		<div id = "proglist" style = "overflow:auto;"> </div>
+		<div id = "proglist" style = "overflow:auto;">
+			<?php
+			if(!empty($progissue))
+			{
+				?>
+				<div class="box">
+					<div class="box-body">
+						<?php echo prognosis($progstatus,$progissue,$proglocation,0);?>
+					</div>
+				</div>
+				<?php
+				
+			}
+			?>
+		</div>
 		<script>
 		$("#pbrowse").click(
 			function()
@@ -4187,7 +4332,7 @@ if(!empty($_POST['ppblocation']))
 	?>
 		<div class="box">
 			<div class="box-body">
-				<?php prognosis($pbstatus,$pbissue,$pblocation,0);?>
+				<?php prognosis($pbstatus,$pbissue,$ppblocation,0);?>
 			</div>
 		</div>
 	<?php
@@ -4199,7 +4344,7 @@ if(isset($_REQUEST['deleteprog']))
 	//echo "The value of ".$key." is ". $val." <br>";
 	}
 	
-	$del = update('agri_prognosis',['isdeleted'=>1],"pronosis_id=$deleteprog");
+	$del = update('agri_prognosis',['isdeleted'=>1],"prognosis_id = $deleteprog");
 	
 	if($del)
 	{
@@ -4221,6 +4366,137 @@ if(isset($_REQUEST['deleteprog']))
 		<script>
 			$("#controlui<?php echo $deleteprogcount;?>").html('RECORD DELETED!');
 		</script>
+	<?php
+}
+if(isset($_REQUEST['progprovincelist']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	}
+	$prquery = mysqli_query($con,"Select * from lup_provinces where region_id = $progprovincelist and isdeleted = 0");
+	?>
+		<H4>SOIL CONDITION LOCATION</H4>
+		<div class="box">
+			<div class="box-body">
+				<div class = "row">
+				<?php
+					if(!empty($_REQUEST['progval']))
+					{
+						$parray = explode(',',$progval);
+						$cc = count($parray);
+						
+						while($row = mysqli_fetch_assoc($prquery))
+						{
+							$c = 0;
+							$checked = '';
+							while($c<=$cc-1)
+							{
+								if($row['province_id'] == $parray[$c])
+								{
+									$checked = 'checked';
+									break;
+								}
+								$c++;
+							}
+							?>
+								<div class="col-md-2">
+										<div class="form-group">
+											<label>
+											<input type="checkbox" name="progprovince[<?php echo $row['province_id'];?>]" <?php echo $checked;?>>
+											<?php echo $row['description'];?></label>
+										</div>			 
+								</div>	
+							<?php
+						}
+					}
+					else
+					{
+						while($row = mysqli_fetch_assoc($prquery))
+						{
+							?>
+								<div class="col-md-2">
+										<div class="form-group">
+											<label>
+											<input type="checkbox" name="progprovince[<?php echo $row['province_id'];?>]">
+											<?php echo $row['description'];?></label>
+										</div>			 
+								</div>	
+							<?php
+						}
+					}
+				?>
+				</div>
+			</div>
+		</div>
+	<?php
+}
+if(!empty($_POST['progbatchdelete']))
+{
+	if(isset($_POST['select']))
+	{
+		foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_prognosis',['isdeleted'=>1],"prognosis_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php prognosis($progstatus,$progissue,$proglocation,0);?>
+			</div>
+		</div>
+	<?php
+}
+if(!empty($_POST['progbatchpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+		
+	if(isset($_POST['select']))
+	{
+		
+		
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_prognosis',['status'=>1],"prognosis_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+			<?php prognosis($progstatus,$progissue,$proglocation,0);?>
+			</div>
+		</div>
+	<?php
+	
+}
+if(!empty($_POST['progbatchunpub']))
+{
+	foreach($_POST as $key=>$val) {
+			${$key} = $val;
+		//echo "The value of ".$key." is ". $val." <br>";
+		}
+	if(isset($_POST['select']))
+	{
+		$delete = $_POST['select'];
+		foreach ($delete as $id => $val) {
+			$del = update('agri_prognosis',['status'=>2],"prognosis_id=$id");
+		}
+	}
+	?>
+		<div class="box">
+			<div class="box-body">
+				<?php prognosis($progstatus,$progissue,$proglocation,0);?>
+			</div>
+		</div>
 	<?php
 }
 

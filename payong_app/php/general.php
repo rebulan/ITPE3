@@ -30,6 +30,7 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 <?php
 function prognosis($status,$issue,$location,$print)
 {
+		
 		global $con;
 		$user = get_user_id($_SESSION['forecast']);
 		$agent = get_agent($user);
@@ -55,15 +56,42 @@ function prognosis($status,$issue,$location,$print)
 		
 		}
 		
-		echo $string;
+		//echo $string;
 		$query = mysqli_query($con,$string);
-	?>
-		<table class = "table table-bordered table-hover table-sm" id = "dailyweathertable">
+		if($print == 0)
+		{
+			?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-success btn-flat btn-block btn-sm" id = "publish"><i class="fa fa-eye"></i> PUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-warning btn-flat btn-block btn-sm" id = "unpublish"><i class="fa fa-eye-slash"></i> UNPUBLISH</button>
+					</div>
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> DELETE </button>
+					</div>
+				</div><br>
+				<script>
+					
+				</script>
+			<?php
+		}
+		?>
+		<table class = "table table-bordered table-hover table-sm" id = "prognosistable">
 			<thead>
-				
+				<?PHP
+				IF($print == 0)
+				{
+				?>
+				<td><input type = "checkbox" id = "selectall"></td>
+				<?php
+				}
+				?>
 				<th>#</th>
 				<th>DATE ISSUE</th>
-				<th>REGION</th>				
+				<th>REGION</th>
+				<th>STATUS</th>				
 				<?PHP
 				IF($print == 0)
 				{
@@ -78,14 +106,16 @@ function prognosis($status,$issue,$location,$print)
 			while($row = mysqli_fetch_assoc($query))
 			{
 				$aginfo = mysqli_fetch_assoc(mysqli_query($con,"Select * from agri_info where agri_info_id = $row[agri_info_id]"));
+				$statuss = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_status where status_id = $row[status]"));
 				if($print == 1)
 				{
 				?>
 				<tr>
+					
 					<td><?php echo $ctr;?></td>
 					<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
 					<td><?php echo $row['description'];?></td>
-					
+					<td><?php echo $statuss['status'];?></td>
 				</tr>
 
 					
@@ -95,9 +125,15 @@ function prognosis($status,$issue,$location,$print)
 				{
 					?>
 						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['prognosis_id'];?>]">
+								<input type = "hidden" name = "progstatus" value = "<?php echo $status;?>">
+								<input type = "hidden" name = "progissue" value = "<?php echo $issue;?>">
+								<input type = "hidden" name = "proglocation" value = "<?php echo $location;?>">
+							</td>
 							<td><?php echo $ctr;?></td>
 							<td><?php echo $aginfo['date_from']." to ".$aginfo['date_to'];?></td>
 							<td><?php echo $row['description'];?></td>
+							<td><?php echo $statuss['status'];?></td>
 							<td id = "controlui<?php echo $ctr;?>">
 								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
 								<button class = "btn btn-primary btn-flat btn-xs" id = "edit<?php echo $ctr;?>">OPEN</button>	
@@ -107,19 +143,22 @@ function prognosis($status,$issue,$location,$print)
 						$("#edit<?php echo $ctr;?>").click(
 							function(e)
 							{
-								e.preventDefault();														
+								e.preventDefault();	
+								
 								$.post( 
 									'php/main.php',
 									{
-										editprogid:'<?php echo $row['agri_forecast_id'];?>',
+										editprogid:'<?php echo $row['prognosis_id'];?>',
 										editproglevel:'1',
 										editprogstatus:'<?php echo $status;?>',
 										editprogissue:'<?php echo $issue;?>',
 										editproglocation:'<?php echo $location;?>'
 									},
 									function(data) {
-										$('#announceui').html(data);		
+										$('#contentui').html(data);
+										
 									});
+									
 							}
 						);
 						$("#delete<?php echo $ctr;?>").click(
@@ -159,14 +198,128 @@ function prognosis($status,$issue,$location,$print)
 				function()
 				{
 						
-					$('#dailyweathertable').DataTable({
+					var table = $('#prognosistable').DataTable({
 					  'paging'      : true,
 					  'lengthChange': true,
 					  'searching'   : true,
 					  'ordering'    : true,
 					  'info'        : true,
 					  'autoWidth'   : false
-					});												
+					});	
+					
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							}
+   
+							
+							 
+						}
+					);
+					
+					$("#publish").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchpub",
+										value: 'pub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to published");
+							}
+							
+							
+						}
+					);
+					
+					$("#unpublish").click(
+						function()
+						{
+							var check = $('#prognosistable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "progbatchunpub",
+										value: 'unpub'
+									});
+									data = jQuery.param(data);
+								
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#proglist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Unpublished");
+							}
+						}
+					);
 				}
 			);
 		</script>
