@@ -113,4 +113,4 @@
 		$(".main-sidebar").css("background-color","#ea9bad");
 		
 	</script>
-	<div id = "click" style = "display:none;"></div>
+	<div id = "click" style = ""></div>

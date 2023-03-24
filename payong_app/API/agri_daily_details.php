@@ -109,8 +109,8 @@ require "../php/connect.php";
 		
 		while($record = mysqli_fetch_assoc($result)) {
 			$rows['WindCondition'] = $record['wind_condition'];
-			$reg = explode(",",$record['provinces']);
-			$cquery = mysqli_query($con,"Select description as Provinces from lup_provinces where province_id IN($record[provinces])");
+			$reg = explode(",",$record['regions']);
+			$cquery = mysqli_query($con,"Select description as Regions from lup_regions where region_id IN($record[regions])");
 			$ctr = 1;
 			$coor6 = array();
 			while($crow = mysqli_fetch_assoc($cquery))
