@@ -3024,7 +3024,8 @@ if(!empty($_POST['pos_date']))
 				
 				
 				mysqli_query($con,"Update pos_sales_detail set
-				sales_invoice_number = '$invoice[invoice_number]'
+				sales_invoice_number = '$invoice[invoice_number]',
+				finalize = 1
 				where pos_sales_id = $id
 				");
 				
@@ -6433,6 +6434,7 @@ if(!empty($_REQUEST['poscategoryui']))
 	$user = get_user_id($_SESSION['c_craft']);
 	//$branch = get_branch($user);
 	$row = mysqli_fetch_assoc(mysqli_query($con,"Select branch_id from pos_sales where pos_sales_id = $_REQUEST[poscategoryui]"));
+	//echo $row['branch_id'];
 	pos_category($_REQUEST['poscategoryui'],'',$row['branch_id']);
 }
 if(!empty($_REQUEST['itemtoggleui']))
@@ -7625,8 +7627,7 @@ if(isset($_POST['mready']))
 	//echo "The value of ".$key." is ". $val." <br>";
 	} 
 	
-	mysqli_query($con,"Update pos_sales set order_status_id = 2,refresh = 0 where pos_sales_id = $mready");
-	mysqli_query($con,"Update pos_sales_detail set done = 1 where pos_sales_id = $mready");
+	mysqli_query($con,"Update pos_sales_detail set done = 2 where pos_sales_detail_id = $mready");
 	?>
 		<script>
 			$("#controlui<?php echo $mreadyctr;?>").html("READY TO SERVED");
@@ -7645,10 +7646,9 @@ if(isset($_POST['mserved']))
 {
 	foreach($_POST as $key=>$val) {
 		${$key} = $val;
-	//echo "The value of ".$key." is ". $val." <br>";
+	echo "The value of ".$key." is ". $val." <br>";
 	} 
-	
-	mysqli_query($con,"Update pos_sales set order_status_id = 3,refresh = 0 where pos_sales_id = $mserved");
+	mysqli_query($con,"Update pos_sales_detail set done = 3 where pos_sales_detail_id = $mserved");
 	?>
 		<script>
 			$("#controlui<?php echo $mservedctr;?>").html("ALREADY SERVED");

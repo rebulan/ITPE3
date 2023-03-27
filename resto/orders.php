@@ -38,23 +38,23 @@ include('php/code.php');
      
     </nav>
   </header>	
-  <h2 style = "width:85%;margin:auto;margin-top:30px;text-align:center;">ORDER STATUS</H2>
+  <h1 style = "width:100%; background-color:#006633;margin:auto;margin-top:30px;text-align:center;padding-top:15px;padding-bottom:15px;color:#fff;">ORDER STATUS</H1><br>
 	<div class = "row">
 		<div class="col-md-6">
-			<div class="box" style = "width:85%;margin-top:10px;margin:auto;">
+			<div class="box" style = "width:95%;margin-top:10px;margin:auto;">
 				   <div class="box-header with-border">
-						 <h3 class="box-title">PREPARING</h3>
+						 <h2 class="box-title">PREPARATIONS</h2>
 					</div>
-				  <div class="box-body" id = "prepui">
+				  <div class="box-body" id = "prepui" style = "font-size:16px;">
 				  </div>
 			  </div>							  							 
 		</div>
 		<div class="col-md-6">
-			<div class="box" style = "width:85%;margin-top:10px;margin:auto;">
+			<div class="box" style = "width:95%;margin-top:10px;margin:auto;">
 					<div class="box-header with-border">
-						 <h3 class="box-title">READY TO SERVE</h3>
+						 <h2 class="box-title">READY TO SERVE</h2>
 					</div>
-				  <div class="box-body" id = "readyui">
+				  <div class="box-body" id = "readyui" style = "font-size:16px;">
 				  </div>
 			  </div>
 		</div>

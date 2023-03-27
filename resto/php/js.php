@@ -36,81 +36,95 @@
 	<script src="dist/js/demo.js"></script>
 	<script src="dist/js/form/form-validator/jquery.form-validator.min.js"></script>
 	<script src="dist/js/print/printThis.js"></script>
-	<script src="dist/js/tinymce/tinymce.min.js"></script>
 	<script src="bower_components/DataTables/DataTables-1.13.1/js/jquery.dataTables.min.js"></script>
 	<script src="bower_components/select2/dist/js/select2.min.js"></script>
-	<script src="bower_components/color_picker/dist/spectrum.min.js"></script>
-	
-	
-	
 	<!--<script src="bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
 	<script src="bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>-->
-						<div class="modal fade" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true" id = "modal" >
-							  <div class="modal-dialog" id = "modalbody">
-								<div class="modal-content" style = "padding:10px;">
-									<div class="modal-header">
-										<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-									</div>
-									<div id = 'modalui'>
-									
-									</div>
-								</div>
-							  </div>
-						</div>
-	<div class="modal fade bs-example-modal-lg" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true" id = "modal2" >
-							  <div class="modal-dialog modal-lg" id = "modalbody2">
-								<div class="modal-content" style = "padding:10px;">
-									<div class="modal-header">
-										<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-									</div>
-									<div id = 'modalui2'>
-									aaaaa
-									</div>
-								</div>
-							  </div>
-						</div>
-			<div class="modal fade bs-example-modal-lg" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true" id = "modal3" >
-							  <div class="modal-dialog modal-lg" id = "modalbody3">
-								<div class="modal-content" style = "padding:10px;">
-									<div class="modal-header">
-										<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-									</div>
-									<div id = 'modalui3'>
-									aaaaa
-									</div>
-								</div>
-							  </div>
-						</div>
-	
-						<div class="modal fade bs-example-modal-lg" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true" id = "modal4" >
-							  <div class="modal-dialog modal-lg" id = "modalbody4">
-								<div class="modal-content" style = "padding:10px;">
-									
-									<div id = 'modalui4'>
-									
-									</div>
-								</div>
-							  </div>
-						</div>
-						<div class="modal fade" id="backdrop">
-						  <div class="modal-dialog" id = "backdropbody">
+					     <div class="modal fade" id="modal">
+						  <div class="modal-dialog" id = "modalbody">
 							<div class="modal-content">
 							  <div class="modal-header">
-								
-								
-							  </div>
-							  <div class="modal-body" id = "backdropui">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								  <span aria-hidden="true">&times;</span></button>
 								
 							  </div>
-							  
+							  <div class="modal-body" id = "modalui">
+								
+							  </div>
+							  <div class="modal-footer">
+								<button type="button" class="btn btn-outline pull-left" data-dismiss="modal">Close</button>
+								
+							  </div>
 							</div>
 							<!-- /.modal-content -->
 						  </div>
 						  <!-- /.modal-dialog -->
 						</div>
+						<div class="modal fade" id="modal2">
+						  <div class="modal-dialog" id = "modalbody">
+							<div class="modal-content">
+							  <div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								  <span aria-hidden="true">&times;</span></button>
+								
+							  </div>
+							  <div class="modal-body" id = "modalui2">
+								
+							  </div>
+							  <div class="modal-footer">
+								<button type="button" class="btn btn-outline pull-left" data-dismiss="modal">Close</button>
+								
+							  </div>
+							</div>
+							<!-- /.modal-content -->
+						  </div>
+						  <!-- /.modal-dialog -->
+						</div>
+						<div class="modal fade" id="modal3">
+						  <div class="modal-dialog" id = "modalbody">
+							<div class="modal-content">
+							  <div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								  <span aria-hidden="true">&times;</span></button>
+								
+							  </div>
+							  <div class="modal-body" id = "modalui3">
+								
+							  </div>
+							  <div class="modal-footer">
+								<button type="button" class="btn btn-outline pull-left" data-dismiss="modal">Close</button>
+								
+							  </div>
+							</div>
+							<!-- /.modal-content -->
+						  </div>
+						  <!-- /.modal-dialog -->
+						</div>
+						<div class="modal fade" id="modal4">
+						  <div class="modal-dialog" id = "modalbody">
+							<div class="modal-content">
+							  <div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								  <span aria-hidden="true">&times;</span></button>
+								
+							  </div>
+							  <div class="modal-body" id = "modalui4">
+								
+							  </div>
+							  <div class="modal-footer">
+								<button type="button" class="btn btn-outline pull-left" data-dismiss="modal">Close</button>
+								
+							  </div>
+							</div>
+							<!-- /.modal-content -->
+						  </div>
+						  <!-- /.modal-dialog -->
+						</div>
+		
+						
 						
 	<script>
 		$(".main-sidebar").css("background-color","#ea9bad");
 		
 	</script>
-	<div id = "click"></div>
+	<div id = "click" style = "display:none;"></div>
