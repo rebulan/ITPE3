@@ -28,6 +28,1325 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function clientlist($bir,$bunit,$print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from client_info where isdeleted = 0"; 
+		
+		if($bir != '' && $bir != 'ALL')
+		{
+			$string = $string." and bir_office = $bir";
+		}
+		if($bunit != '' && $bunit != 'ALL')
+		{
+			//$string = $string." and engagement_id = $en";
+		}
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+		<table class = "table table-bordered table-hover table-sm" id = "cltable">
+			<thead>
+				<th>#</th>
+				<th>CLIENT DESCRIPTION</th>
+				<th>BIR OFFICE</th>
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>			
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				$bir = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_bir_office where ID = $row[bir_office]"));
+				?>
+						<tr>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $row['business_name'];?></td>
+							<td><?php echo $bir['office_name'];?></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							
+						</tr>
+				
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#cltable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function cengagement($client,$en, $print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from client_engagements where isdeleted = 0"; 
+		if($client != '' && $client != 'ALL')
+		{
+			$string = $string." and client_id = $client";
+		}
+		if($en != '' && $en != 'ALL')
+		{
+			$string = $string." and engagement_id = $en";
+		}
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "centable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#centable input').attr('checked', true);
+								} else {
+									$('#centable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>CLIENT</th>
+				<th>ENGAGEMENT DESCRIPTION</th>
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				$cl = mysqli_fetch_assoc(mysqli_query($con,"Select * from client_info where ID = $row[client_id]"));
+				$en = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_engagements where ID = $row[engagement_id]"));
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $cl['business_name'];?></td>
+							<td><?php echo $en['engagement'];?></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+							</td>
+						</tr>
+						<script>								
+						
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletecenid:'<?php echo $row['ID'];?>',
+											deletecencount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#centable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#centable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "cenbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function engagement($print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_engagements where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "entable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#entable input').attr('checked', true);
+								} else {
+									$('#entable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>ENGAGEMENT DESCRIPTION</th>
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>
+				<th>LAST UPDATE</th>	
+				<th>UPDATED BY</th>	
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				$upby= get_agent($row['update_by']);
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							<td><input type="text" ID="endes<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['engagement'];?>"></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							<td id = "lu<?php echo $ctr;?>"><?php echo $row['last_update'];?></td>
+							<td id = "upby<?php echo $ctr;?>"><?php echo $upby;?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editenid:'<?php echo $row['ID'];?>',
+											editendes:$("#endes<?php echo $ctr;?>").val(),
+											editenpercent:$("#enpercent<?php echo $ctr;?>").val(),
+											editencount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data)
+											
+										});
+								}
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteenid:'<?php echo $row['ID'];?>',
+											deleteencount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#entable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#entable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "enbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function purchasetype($print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_purchase_type where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "pttable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#pttable input').attr('checked', true);
+								} else {
+									$('#pttable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>PURCHASE TYPE DESCRIPTION</th>
+				<th>%</th>
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>
+				<th>LAST UPDATE</th>	
+				<th>UPDATED BY</th>	
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				$upby= get_agent($row['update_by']);
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							<td><input type="text" ID="ptdes<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['purchase_type'];?>"></td>
+							<td><input type="number" step = "0.01" ID="ptpercent<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['percent'];?>"></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							<td id = "lu<?php echo $ctr;?>"><?php echo $row['last_update'];?></td>
+							<td id = "upby<?php echo $ctr;?>"><?php echo $upby;?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editptid:'<?php echo $row['ID'];?>',
+											editptdes:$("#ptdes<?php echo $ctr;?>").val(),
+											editptpercent:$("#ptpercent<?php echo $ctr;?>").val(),
+											editptcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data)
+											
+										});
+								}
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteptid:'<?php echo $row['ID'];?>',
+											deleteptcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#pttable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#pttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "ptbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function salestype($print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_sales_type where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "sttable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#sttable input').attr('checked', true);
+								} else {
+									$('#sttable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>SALE TYPE DESCRIPTION</th>
+				<th>%</th>
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>
+				<th>LAST UPDATE</th>	
+				<th>UPDATED BY</th>	
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				$upby= get_agent($row['update_by']);
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							
+							<td><input type="text" ID="stdes<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['sales_type'];?>"></td>
+							<td><input type="text" ID="stpercent<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['percent'];?>"></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							<td id = "lu<?php echo $ctr;?>"><?php echo $row['last_update'];?></td>
+							<td id = "upby<?php echo $ctr;?>"><?php echo $upby;?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editstid:'<?php echo $row['ID'];?>',
+											editstdes:$("#stdes<?php echo $ctr;?>").val(),
+											editstpercent:$("#stpercent<?php echo $ctr;?>").val(),
+											editstcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data)
+										});
+								}
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();													
+								var r = confirm("Confirm delete");
+								if(r == true)
+								{					
+									$.post( 
+										'php/main.php',
+										{
+											deletestid:'<?php echo $row['ID'];?>',
+											deletestcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#sttable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#sttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "stbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function bir($print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_bir_office where isdeleted = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "birtable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#teamtable input').attr('checked', true);
+								} else {
+									$('#teamtable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>OFFICE DESCRIPTION</th>
+				<th>ADDED BY</th>	
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							
+							<td><input type="text" ID="birdes<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['office_name'];?>"></td>
+							<td><?php echo $added;?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editbirid:'<?php echo $row['ID'];?>',
+											editbirdes:$("#birdes<?php echo $ctr;?>").val()
+										},
+										function(data) {
+											$('#click').html(data)
+											
+										});
+								}
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deletebirid:'<?php echo $row['ID'];?>',
+											deletebircount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#birtable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#birtable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "birbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
+function assign_history($assign)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from client_assignment where client_id = $assign order by date_added"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+		<table class = "table table-bordered table-hover table-sm" id = "assigntable">
+			<thead>
+				
+				<th>#</th>
+				<th>ASSIGNED TO</th>
+				<th>DATE ASSIGNED</th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				
+				$auser = mysqli_fetch_assoc(mysqli_query($con,"Select * from se_user where user_id = $row[user_id]"));
+				$team = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_team where team_id = $auser[team_id]"));
+				?>
+						<tr>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $auser['fullname']."-".$team['team_name'];?></td>
+							<td><?php echo $row['date_added'];?></td>
+						
+						</tr>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#assigntable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+				}
+			);
+			</script>
+		
+	<?php
+}
+
+function client_assignment($assign)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from client_info where isdeleted = 0"; 
+		
+		if($assign != '' && $assign != 'all')
+		{
+			$string = $string." and cassign = $assign";
+		}
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+		<table class = "table table-bordered table-hover table-sm" id = "clienttable">
+			<thead>
+				
+				<th>#</th>
+				<th>BUSINESS NAME</th>
+				<th>ASSIGNED TO</th>
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$team = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_team where team_id = $row[team_id]"));
+				$auser = mysqli_fetch_assoc(mysqli_query($con,"Select * from se_user where user_id = $row[cassign]"));
+				?>
+						<tr>
+							<td><?php echo $ctr;?></td>
+							<td><?php echo $row['business_name'];?></td>
+							<td id = "assuserui<?php echo $ctr;?>" >
+													<select style = "width:100%;" class = "form-control" name = "asuser<?php echo $ctr;?>" id = "asuser<?php echo $ctr;?>">
+														<option value = "<?php echo $auser['user_id'];?>" hidden "Selected"><?php echo $auser['fullname']."-".$team['team_name'];?></option>
+													<?php
+													$pmquery = mysqli_query($con,"Select * from se_user, lup_team where se_user.isdeleted = 0 
+													and lup_team.team_id = se_user.team_id");
+													while($prow = mysqli_fetch_assoc($pmquery))
+													{
+													?>
+														<option value = "<?php echo $prow['user_id'];?>"><?php echo $prow['fullname']."-".$prow['team_name'];?></option>
+													
+													<?php
+													}
+													?>
+													</select>
+													</td>
+							<td id = "controlui<?php echo $ctr;?>">	
+								<button class = "btn btn-success btn-flat btn-xs" id = "update<?php echo $ctr;?>">UPDATE ASSIGNMENT</button>	
+								<button class = "btn btn-warning btn-flat btn-xs" id = "history<?php echo $ctr;?>">ASSIGNMENT HISTORY</button>
+							</td>
+						</tr>
+						<script>	
+
+						$("#asuser<?php echo $ctr;?>").select2(
+							{
+								 width: 'resolve'
+							}
+						);
+						
+						$("#history<?php echo $ctr;?>").click(
+									function(e)
+									{
+															e.preventDefault();
+															$("#modal").modal("show");
+															$('#modalui').html(loading);
+																	
+																	$.post( 
+																				'php/main.php',
+																				{
+																					updateassign:'<?php echo $row['ID'];?>',
+																					updateassignctr:'<?php echo $ctr;?>'
+																				},
+																				function(data) {
+																					$('#modalui').html(data);	
+																				
+																				});
+															
+									}
+								);
+						$("#update<?php echo $ctr;?>").click(
+									function(e)
+									{
+															
+												var r = confirm("Confirm Action");
+
+												if(r == true)
+												{
+																	$.post( 
+																				'php/main.php',
+																				{
+																					asclient:'<?php echo $row['ID'];?>',
+																					asuser:$("#asuser<?php echo$ctr;?>").val()
+																				},
+																				function(data) {
+																					$('#click').html(data);	
+
+																				});
+												}			
+									}
+								);
+								
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#clienttable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+				}
+			);
+			</script>
+		
+	<?php
+}
+
+function teams($print)
+{
+		global $con;
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+
+		$string = "Select * from lup_team where isdeleted = 0 and no_team = 0"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "teamtable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#teamtable input').attr('checked', true);
+								} else {
+									$('#teamtable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				
+				</th>
+				<th>#</th>
+				<th>TEAM DESCRIPTION</th>
+				<th>TEAM LEADER</th>	
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['team_id'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							
+							<td><input type="text" ID="teamdes<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['team_name'];?>"></td>
+							<td>
+											<?PHP
+											$pquery = mysqli_query($con,"select * from se_user where isdeleted = 0");
+											$tlead = mysqli_fetch_assoc(mysqli_query($con,"Select * from se_user where user_id = $row[team_leader]"));
+											?>
+											<select style = "width:100%;"name = "teamleader<?php echo $ctr;?>" id = "teamleader<?php echo $ctr;?>" class="form-control"  data-validation="required" data-validation-error-msg="Select Location">
+															<option value = '<?php echo $tlead['user_id'];?>' hidden "Selected"><?php echo $tlead['fullname'];?></option>
+														<?php
+															while($prow = mysqli_fetch_assoc($pquery))
+															{
+														?>
+															<option value = "<?php echo $prow['user_id'];?>"><?php echo $prow['fullname'];?></option>
+														<?php
+															}
+														?>
+											</select>
+											
+							</td>
+	
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>	
+						$("#teamleader<?php echo $ctr;?>").select2(
+							{
+								 width: 'resolve'
+							}
+						);								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editteamid:'<?php echo $row['team_id'];?>',
+											editeamdes:$("#teamdes<?php echo $ctr;?>").val(),
+											editeamleader:$("#teamleader<?php echo $ctr;?>").val()
+										},
+										function(data) {
+											$('#click').html(data)
+											
+										});
+								}
+									
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();
+																					
+								var r = confirm("Confirm delete");
+								
+								if(r == true)
+								{
+															
+									$.post( 
+										'php/main.php',
+										{
+											deleteteamid:'<?php echo $row['team_id'];?>',
+											deleteteamcount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+						
+						
+					</script>
+					<?php
+				
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#teamtable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#teamtable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "teambatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#teamlist').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
 function modules($personnel)
 {
 	global $con;
@@ -131,7 +1450,7 @@ function modules($personnel)
 function users($level)
 {
 		global $con;
-		$user = get_user_id($_SESSION['c_craft']);
+		$user = get_user_id($_SESSION['bvr']);
 		$agent = get_agent($user);
 		$branch = get_branch($user);
 		
@@ -162,7 +1481,7 @@ function users($level)
 						<td><?php echo $row['agent_number'];?></td>
 						<td><?php echo $row['fullname'];?></td>
 						<td><?php 
-							if(!empty($temp))
+							if(!empty($team))
 								echo $team['team_name'];
 							else
 								echo "NONE";
@@ -293,6 +1612,22 @@ function users($level)
 
 
 }
+function client_info($id)
+{
+	global $con; 
+	$row = mysqli_fetch_assoc(mysqli_query($con, "Select * from client_info where ID = $id"));
+	
+	?>
+			<table class = "table table-condensed table-sm">
+								<tr>
+									<td>TIN: <b><?php echo $row['TIN'];?></b></td>
+									<td>Business Name: <b><?php echo $row['business_name'];?></b></td>
+								</tr>
+								
+			</table>
+	<?php
+}
+
 function agent_info($id)
 {
 	global $con; 
@@ -336,4 +1671,25 @@ function get_branch_name($username)
 	
 	return $row['branch_desription'];
 }
+function insert($table,$para=array()){
+			global $con;
+            $table_columns = implode(',',array_keys($para));
+            $table_value = implode("','", $para);
+
+            $sql="INSERT INTO $table($table_columns)VALUES('$table_value')";
+            $result = mysqli_query($con,$sql);
+			return $result;
+}
+function update($table,$para=array(),$id){
+			global $con;
+            $args = array();
+            foreach ($para as $key => $value) {
+                $args[] = "$key = '$value'"; 
+            }
+            $sql="UPDATE  $table SET " . implode(',', $args);
+            $sql .=" WHERE $id";
+            $result = mysqli_query($con,$sql);
+			return $result;
+}
+
 ?>
