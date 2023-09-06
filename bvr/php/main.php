@@ -3424,9 +3424,142 @@ if(isset($_REQUEST['showsalesui']))
 	</div>
 	<div class="box">
 		<div class="box-body">
+					<form id = "newsales">
+						<div class="row">
+											
+											<div class="col-md-3">
+												<label for="lnam2e">CUSTOMER NAME:</label>
+												<input type = "hidden" value = "<?php echo $showsalesui;?>" name = "insclient">
+												<input type="text" name="inscus" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter CUSTOMER NAME">
+										
+											</div>
+											<div class="col-md-2">
+												<label for="lname">TIN:</label>
+												<input type="text" name="instin" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter TIN">
+										
+											</div>
+											<div class="col-md-3">
+												<label for="lname">ADDRESS:</label>
+												<input type="text" name="insaddress" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter ADDRESS">
+											</div>
+											<div class="col-md-2">
+												<label for="lname">GROSS VAT:</label>
+												<input type="number" name="insgrossvat" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter GROSS VAT">
+											</div>
+											<div class="col-md-2">
+												<label for="lname">NET VAT:</label>
+												<input type="number" name="insnetvat" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter NET VAT">
+											</div>
+											<div class="col-md-2">
+													<div class="form-group">
+														<label>SALES TYPE:</label>
+														<Select class = "form-control" name = "insalestype" id = "insalestype" data-validation="required"
+														data-validation-error-msg="Select TEAM LEADER">
+															<option value = "" hidden "Selected"></option>
+														<?php
+														$pmquery = mysqli_query($con,"Select * from lup_sales_type where isdeleted = 0");
+														while($prow = mysqli_fetch_assoc($pmquery))
+														{
+														?>
+															<option value = "<?php echo $prow['ID'];?>"><?php echo $prow['sales_type'];?></option>
+														
+														<?php
+														}
+														?>
+														</select>
+														<script>
+															$("#insalestype").select2();
+														</script>
+													</div>
+											</div>
+											<div class="col-md-2">
+												<label for="lname">TRANSACTION DATE:</label>
+												<input type="date" name="instransdate" class="form-control"data-validation="required"
+														data-validation-error-msg="Enter TRANSACTION DATE">
+											</div>
+											
+											<div class="col-md-5" style = "padding-top:25px;">
+											  <div class="form-group">
+												<button class = "btn btn-success btn-flat" id = "searchproceed">SAVE</button>
+											
+											  </div>
+											</div>
+										
+								</div>
+					</form>
+					
 		
+							<script>
+										$.validate({
+														form:'#newsales',
+														validateOnBlur : false,
+														errorMessagePosition : 'top',
+														modules : 'security',
+														onSuccess : function($form) {
+														
+															 var formData = $('#newsales').serializeArray();
+																 //var formData = new FormData($('#regform')[0]);
+																 
+																		$.ajax({
+																			url :  'php/main.php',
+																			type : 'post',
+																			datatype : 'json',
+																			data : formData,
+							
+																			success : function(data) {
+																				$("#listui").html(data);
+																				
+																			}
+																		});
+
+														  return false; // Will stop the submission of the form
+														},
+													});
+													
+							</script>
+							
+	
+				<div id = "listui">
+					<?php intsales($showsalesui,$_SESSION['bvr'],0);?>
+				</div>
 		</div>
 	</div>
 <?php
 }
+
+if(isset($_POST['inscus']))
+{
+	foreach($_POST as $key=>$val) {
+		${$key} = $val;
+	//echo "The value of ".$key." is ". $val." <br>";
+	} 
+		$user = get_user_id($_SESSION['bvr']);
+		$agent = get_agent($user);
+		$save = insert('int_sales_purchase',['client_id'=>$insclient,'customer_name'=>$inscus,'tin'=>$instin,'address'=>$insaddress,'gross_vat'=>$insgrossvat,'net_vat'=>$insnetvat,
+		'sales_type'=>$inssalestype,'transaction_date'=>$instransdate,'added_by'=>$user]);
+		
+		if($save)
+		{
+			?>
+						<script>
+							toastr.success("New Sales Record Added");
+						</script>
+		<?php
+		}
+		else
+		{
+			?>
+				<script>
+					toastr.error("Error Adding Sales Record, Please Contact the system administrator");
+				</script>
+			<?php
+		}
+	
+}
+
 ?>

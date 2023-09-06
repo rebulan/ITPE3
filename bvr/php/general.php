@@ -28,6 +28,205 @@ $('#modal4').on('hidden.bs.modal', function (e) {
 </script>
 
 <?php
+function intsales($client,$user,$print)
+{
+		global $con;
+		$user = get_user_id($user);
+		$agent = get_agent($user);
+
+		$string = "Select * from int_sales_purchase where isdeleted = 0 and client_id = $client and added_by = $user"; 
+		//echo $string;
+		$query = mysqli_query($con,$string);
+	?>
+				<div class="row">
+					<div class="col-lg-2 col-xs-6">
+						<button class = "btn btn-danger btn-flat btn-block btn-sm" id = "bdelete"><i class="fa fa-remove"></i> BATCH DELETE </button>
+					</div>
+				</div><br>
+				
+		<table class = "table table-bordered table-hover table-sm" id = "intsalestable">
+			<thead>
+				<th><input type = "checkbox" id = "selectall">
+					<script>
+						$("#selectall").click(
+						function()
+						{
+								if ($(this).is(':checked')) {
+									$('#intsalestable input').attr('checked', true);
+								} else {
+									$('#intsalestable input').attr('checked', false);
+								}
+						}
+						);
+					</script>
+				</th>
+				<th>#</th>
+				<th>CUSTOMER NAME</th>
+				<th>TIN</th>
+				<th>ADDRESS</th>	
+				<th>GROSS VAT</th>
+				<th>NET VAT</th>
+				<th>SALES TYPE</th>	
+				<th>TRANSACTION DATE</th>				
+				<th>ADDED BY</th>
+				<th>DATE ADDED</th>
+				
+				<th></th>				
+			</thead>
+		<?PHP
+			$ctr = 1;
+			while($row = mysqli_fetch_assoc($query))
+			{
+				$added = get_agent($row['added_by']);
+				//$upby= get_agent($row['update_by']);
+				$stype = mysqli_fetch_assoc(mysqli_query($con,"Select * from lup_sales_type where ID = $row['sales_type']"));
+				?>
+						<tr>
+							<td><input type = "checkbox" name = "select[<?php echo $row['ID'];?>]"></td>
+							<td><?php echo $ctr;?></td>
+							
+							<td><input type="text" ID="intscus<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['customer_name'];?>"></td>
+							<td><input type="text" ID="intstin<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['tin'];?>"></td>
+							<td><input type="text" ID="intsaddress<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['address'];?>"></td>
+							<td><input type="text" ID="intsgvat<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['gross_vat'];?>"></td>
+							<td><input type="text" ID="instnvat<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['net_vat'];?>"></td>
+							<td><Select class = "form-control" id = "intssalestype<?php echo $ctr;?>">
+															<option value = "<?php echo $stype['ID'];?>" hidden "Selected">"<?php echo $stype['sales_type'];?></option>
+														<?php
+														$pmquery = mysqli_query($con,"Select * from lup_sales_type where isdeleted = 0");
+														while($prow = mysqli_fetch_assoc($pmquery))
+														{
+														?>
+															<option value = "<?php echo $prow['ID'];?>"><?php echo $prow['sales_type'];?></option>
+														
+														<?php
+														}
+														?>
+														</select>
+							</td>
+							<td><input type="date" ID="intsdate<?php echo $ctr;?>" class="form-control" value = "<?php echo $row['transaction_date'];?>"></td>
+							<td><?php echo $added;?></td>
+							<td><?php echo $row['date_added'];?></td>
+							<td id = "controlui<?php echo $ctr;?>">
+								<button class = "btn btn-danger btn-flat btn-xs" id = "delete<?php echo $ctr;?>">DELETE</button>	
+								<button class = "btn btn-success btn-flat btn-xs" id = "edit<?php echo $ctr;?>">UPDATE</button>	
+							</td>
+						</tr>
+						<script>								
+						$("#edit<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();	
+								
+								var r = confirm("Confirm Update");
+								if(r == true)
+								{
+									$.post( 
+										'php/main.php',
+										{
+											editintsid:'<?php echo $row['ID'];?>',
+											editintscus:$("#intscus<?php echo $ctr;?>").val(),
+											editintstin:$("#intstin<?php echo $ctr;?>").val(),
+											editintsaddress:$("#intsaddress<?php echo $ctr;?>").val(),
+											editintstin:$("#intstin<?php echo $ctr;?>").val(),
+											editintsgvat:$("#intsgvat<?php echo $ctr;?>").val(),
+											editintnvat:$("#intnvat<?php echo $ctr;?>").val(),
+											editintsdate:$("#intsdate<?php echo $ctr;?>").val()
+										},
+										function(data) {
+											$('#click').html(data)
+										});
+								}
+							}
+						);
+						$("#delete<?php echo $ctr;?>").click(
+							function(e)
+							{
+								e.preventDefault();													
+								var r = confirm("Confirm delete");
+								if(r == true)
+								{					
+									$.post( 
+										'php/main.php',
+										{
+											deleteintsid:'<?php echo $row['ID'];?>',
+											deleteinyscount:'<?php echo $ctr;?>'
+										},
+										function(data) {
+											$('#click').html(data);		
+										});
+								}
+							}
+						);
+					</script>
+					<?php
+				$ctr++;
+			}
+			?>
+		</table>
+		<?php
+		if($print == 0)
+		{
+		?>
+			<script>
+				$("#document").ready(
+				function()
+				{
+						
+					 var table = $('#sttable').DataTable({
+					  'paging'      : true,
+					  'lengthChange': true,
+					  'searching'   : true,
+					  'ordering'    : true,
+					  'info'        : true,
+					  'autoWidth'   : false
+					});
+					$("#bdelete").click(
+						function()
+						{
+							var check = $('#sttable').find('input[type=checkbox]:checked').length;
+							
+							if(check != 0)
+							{
+								var r = confirm("confirm Action");
+
+								if(r == true)
+								{
+									
+									var data = table.$('input').serializeArray();
+									data.push({
+										name: "stbatchdelete",
+										value: 'delete'
+									});
+									data = jQuery.param(data);
+									
+									$.ajax({
+										url :  'php/main.php',
+										type : 'post',
+										datatype : 'json',
+										data : data,		
+										success : function(data) {
+											$('#listui').html(data);															
+										}
+										});
+								}
+							}
+							else
+							{
+								alert("Select Item to Delete");
+							} 
+						}
+					);
+					
+				}
+			);
+			</script>
+		<?php
+		}
+		?>
+	<?php
+}
+
 function clientlist($bir,$bunit,$print)
 {
 		global $con;
